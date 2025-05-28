@@ -1,1 +1,16 @@
 2025-05-28 10:15:47 [INFO] 2 avisos procesados y guardados.
+2025-05-28 10:42:49 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:17:49 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:18:01 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:25:59 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:26:00 [ERROR] Error al descargar PDF de Resolución 223/2025_20250528.pdf: [Errno 2] No such file or directory: 'Resolución 223/2025_20250528.pdf'
+2025-05-28 11:26:00 [ERROR] Error al descargar PDF de Resolución 224/2025_20250528.pdf: [Errno 2] No such file or directory: 'Resolución 224/2025_20250528.pdf'
+2025-05-28 11:26:15 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:26:15 [ERROR] Error al descargar PDF de Resolución 223/2025_20250528.pdf: [Errno 2] No such file or directory: 'Resolución 223/2025_20250528.pdf'
+2025-05-28 11:26:16 [ERROR] Error al descargar PDF de Resolución 224/2025_20250528.pdf: [Errno 2] No such file or directory: 'Resolución 224/2025_20250528.pdf'
+2025-05-28 11:29:16 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:29:16 [ERROR] Error al descargar Resolución 223/2025_20250528.pdf: [Errno 2] No such file or directory: 'pdfs\\Resolución 223/2025_20250528.pdf'
+2025-05-28 11:29:16 [ERROR] Error al descargar Resolución 224/2025_20250528.pdf: [Errno 2] No such file or directory: 'pdfs\\Resolución 224/2025_20250528.pdf'
+2025-05-28 11:31:44 [INFO] 2 avisos procesados y guardados.
+2025-05-28 11:31:44 [INFO] PDF descargado: pdfs\Resolución 223_2025_20250528.pdf
+2025-05-28 11:31:44 [INFO] PDF descargado: pdfs\Resolución 224_2025_20250528.pdf
