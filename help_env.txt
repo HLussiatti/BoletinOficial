@@ -1,0 +1,13 @@
+python --version --> Versión activa de python
+py --list --> todas las versiones instaladas de py
+python -m venv .env --> crea enviroment 
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser --> da permisos
+.\.env\Scripts\activate --> activa el env
+deactivate --> desactiva el env
+pip install -r requirements.txt --> instala requirements
+
+pip freeze > requirements.txt --> "modifica o crea el req"
+
+rm -r .env\  ---> borra la carpeta env para reinicar el enviroment
+
+
