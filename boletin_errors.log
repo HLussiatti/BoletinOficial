@@ -1,578 +1,67 @@
-
-2025-05-28 14:13:48 [INFO] 2 avisos procesados y guardados.
-2025-05-28 14:13:48 [INFO] Ya existe: pdfs\Resolución 223_2025_20250528.pdf
-2025-05-28 14:13:48 [INFO] Ya existe: pdfs\Resolución 224_2025_20250528.pdf
-2025-05-28 14:39:15 [INFO] 2 avisos procesados y guardados.
-2025-05-28 14:39:15 [INFO] Ya existe: pdfs\Resolución 223_2025_20250528.pdf
-2025-05-28 14:39:15 [INFO] Ya existe: pdfs\Resolución 224_2025_20250528.pdf
-2025-05-28 14:46:57 [INFO] 2 avisos procesados y guardados.
-2025-05-28 14:46:57 [INFO] Ya existe: pdfs\Resolución 223_2025_20250528.pdf
-2025-05-29 07:08:24 [INFO] 2 avisos procesados y guardados.
-2025-05-29 07:08:24 [INFO] Ya existe: pdfs\Resolución 223_2025_20250528.pdf
-2025-05-29 07:14:55 [INFO] 2 avisos procesados y guardados.
-2025-05-29 07:14:55 [INFO] Ya existe: pdfs\Resolución 223_2025_20250528.pdf
-2025-05-29 08:20:02 [INFO] 4 avisos procesados y guardados.
-2025-05-29 08:20:03 [INFO] PDF descargado: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 08:20:06 [WARNING] Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
-2025-05-29 08:51:53 [INFO] 4 avisos procesados y guardados.
-2025-05-29 08:51:53 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 08:51:58 [INFO] PDF descargado: pdfs\Aviso Oficial_20250529.pdf
-2025-05-29 08:52:00 [INFO] PDF descargado: pdfs\Disposición 228_2025_20250529.pdf
-2025-05-29 08:52:03 [INFO] PDF descargado: pdfs\Resolución General 5701_2025_20250529.pdf
-2025-05-29 08:52:54 [INFO] 4 avisos procesados y guardados.
-2025-05-29 08:52:54 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 08:52:54 [INFO] Ya existe: pdfs\Aviso Oficial_20250529.pdf
-2025-05-29 08:52:54 [INFO] Ya existe: pdfs\Disposición 228_2025_20250529.pdf
-2025-05-29 08:52:54 [INFO] Ya existe: pdfs\Resolución General 5701_2025_20250529.pdf
-2025-05-29 08:56:21 [INFO] 4 avisos procesados y guardados.
-2025-05-29 08:56:21 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 08:57:18 [INFO] 4 avisos procesados y guardados.
-2025-05-29 08:57:18 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:00:05 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:00:05 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:27:57 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:27:57 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:29:05 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:29:05 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:29:40 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:29:40 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:30:19 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:30:19 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:30:40 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:30:40 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:33:14 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:33:14 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:33:33 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:33:33 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:33:54 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:33:54 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:34:21 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:34:21 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:38:46 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:38:46 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:38:59 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:38:59 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:42:14 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:42:14 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:47:05 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:47:05 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:47:57 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:47:57 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:49:49 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:49:49 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:51:13 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:51:13 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:53:03 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:53:03 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:56:12 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:56:12 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:56:56 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:56:56 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:59:21 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:59:21 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 09:59:28 [INFO] 4 avisos procesados y guardados.
-2025-05-29 09:59:28 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:01:24 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:01:24 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:01:32 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:01:32 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:02:11 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:02:11 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:03:45 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:03:45 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:04:08 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:04:08 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:29:16 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:29:16 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:35:27 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:35:27 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:35:41 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:35:41 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:37:16 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:37:16 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:37:29 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:37:29 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:43:49 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:43:49 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:43:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:47:23 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:23 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:25 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:47:53 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:53 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:47:55 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:48:14 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:48:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:53:09 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:53:49 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:53:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:54:14 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:54:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [INFO] 4 avisos procesados y guardados.
-2025-05-29 10:57:14 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:14 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 10:57:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [INFO] 4 avisos procesados y guardados.
-2025-05-29 11:01:02 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [INFO] 4 avisos procesados y guardados.
-2025-05-29 11:01:20 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:20 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [INFO] 4 avisos procesados y guardados.
-2025-05-29 11:01:42 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:42 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:01:45 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [INFO] 4 avisos procesados y guardados.
-2025-05-29 11:04:11 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 11:04:13 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:07:11 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:11 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:07:16 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:08:22 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:22 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:24 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:08:49 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:49 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:08:52 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:26:41 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:41 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:26:43 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:29:09 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:09 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:29:10 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:31:27 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:27 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:31:29 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:32:17 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:17 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:32:19 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:33:02 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:02 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:33:05 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:40:59 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:40:59 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:00 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [INFO] 4 avisos procesados y guardados.
-2025-05-29 14:41:35 [INFO] Ya existe: pdfs\Resolución 165_2025_20250529.pdf
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:35 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
-2025-05-29 14:41:38 [WARNING] CropBox missing from /Page, defaulting to MediaBox
+2025-06-06 07:09:58 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C49DE0F0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:10:40 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C650B950>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:18:42 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6697C50>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:19:24 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6696420>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:25:07 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66C7440>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:25:49 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66C72C0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:29:58 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66960F0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:30:40 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66975C0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:41:45 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6232720>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:42:27 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6694DD0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:44:42 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66C4350>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:45:24 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C670E990>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:48:32 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C670D340>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:49:14 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C670FF20>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:49:56 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C670C4A0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:50:38 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6676000>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:51:21 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6696420>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:52:03 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6695310>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:52:45 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6694260>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:53:27 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66C6210>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:54:10 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66C4050>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:54:52 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66C5490>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:55:35 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6694E30>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:56:17 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6694680>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:56:59 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6695EE0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:57:41 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6697F80>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:58:24 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6695BE0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:59:06 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C66955E0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 07:59:48 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6697EC0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:00:30 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6695850>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:01:12 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184BDBED2E0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:01:54 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C4047770>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:02:36 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C62161B0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:03:18 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6223260>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:04:00 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6697980>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:04:43 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6696450>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:05:25 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6696090>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:06:07 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6697740>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:06:49 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C650B410>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:07:31 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000184C6697D10>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:31:19 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C0699F8C50>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:32:01 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CCBD10>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:32:43 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C0699F3560>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:33:25 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDC050>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:34:07 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDD9A0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:34:49 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDE1B0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:35:32 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDEA80>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:36:14 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CCB620>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:36:56 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C0699F3AA0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:37:38 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDDD00>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:38:20 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDD7F0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:39:02 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDC860>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:39:44 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDF080>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:40:26 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C0699EE8D0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:41:08 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C067FCB5C0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:41:50 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C0699CFE60>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:42:32 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDC410>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:43:15 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDD850>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:43:57 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDDAC0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:44:39 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CDE540>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:45:21 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C069CCBAA0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:46:03 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001C0698EDA60>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:58:22 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001FC0F0CABA0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:59:05 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001FC114FB5C0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 08:59:47 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001FC1150D1F0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 09:03:27 [ERROR] Fallo la búsqueda para 'energía': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x0000023342B34E90>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))
+2025-06-06 09:04:09 [ERROR] Fallo la búsqueda para 'ENERGÍA': HTTPSConnectionPool(host='www.boletinoficial.gob.ar', port=443): Max retries exceeded with url: /busquedaAvanzada/realizarBusqueda (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x0000023342F3C5C0>, 'Connection to www.boletinoficial.gob.ar timed out. (connect timeout=None)'))

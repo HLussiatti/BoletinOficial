@@ -1,13 +1,91 @@
+window terminal
+
 python --version --> Versión activa de python
 py --list --> todas las versiones instaladas de py
 python -m venv .env --> crea enviroment 
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser --> da permisos
-.\.env\Scripts\activate --> activa el env
-deactivate --> desactiva el env
-pip install -r requirements.txt --> instala requirements
 
-pip freeze > requirements.txt --> "modifica o crea el req"
 
-rm -r .env\  ---> borra la carpeta env para reinicar el enviroment
+Cada vez que empiezo a trabajar activo el env e instalo librerías desde el Power Shell
+		.\.env\Scripts\activate --> activa el env
+		deactivate --> desactiva el env
+
+		
+Instalar todas las librerías desde Power Shell
+		pip install -r requirements.txt --> instala requirements
+		pip freeze > requirements.txt --> "modifica o crea el req"
+		rm -r .env\  ---> borra la carpeta env para reinicar el enviroment
+
+
+
+
+
+PASOS para el set del Framework con Kedro y MlFlow
+-------------------------
+Crear el Repo en GitHub
+Inciarlo localmente
+
+-------------------------
+# Crear entorno virtual (para no “ensuciar” el sistema)
+python -m venv .venv
+# Activar el entorno
+. .\.venv\Scripts\Activate.ps1
+# Actualizar pip
+python -m pip install -U pip
+
+
+-------------------------
+# Instalar Kedro, MlFlow y el plugin que los vincula.
+pip install kedro
+pip install mlflow
+pip install kedro-mlflow
+pip install kedro_datasets (este surgió por un error posterior)
+
+-------------------------
+# Generar el esqueleto de Kedro en este directorio (sin carpetas anidadas)
+# Crear yml desde powershell
+
+@"
+output_dir: .
+project_name: Electric Demand Forecast
+repo_name: ElectricDemandForecast
+python_package: electric_demand
+example_pipeline: yes
+"@ | Out-File -Encoding utf8 kedro_config.yml
+
+
+# Abrí el archivo kedro_config.yml y poné comillas a los valores (especialmente example_pipeline). Dejá algo así:
+
+output_dir: "."
+project_name: "Electric Demand Forecast"
+repo_name: "ElectricDemandForecast"
+python_package: "electric_demand"
+example_pipeline: "yes"   # <-- IMPORTANTE: entre comillas
+
+#Ejecutar desde PowerShell
+kedro new --config kedro_config.yml
+
+
+-------------------------
+# Para tener las librerías necesarias para kendor en enviroment
+pip install -r requirements.txt 
+
+
+-------------------------
+# Abrí src/electric_demand/settings.py y escribir:
+
+from kedro_mlflow.framework.hooks import MlflowHook
+HOOKS = (MlflowHook(),)
+
+
+# Desde PowerShell crear el archivo:
+kedro mlflow init
+
+
+# Probar:
+kedro run
+
+#Probar: 
+mlflow ui --backend-store-uri mlruns --port 5000
 
 
