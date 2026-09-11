@@ -23,7 +23,9 @@ ejecuta así:
 ```
 
 Para un histórico se usa `--mode historical`; el modo `daily` toma la fecha actual
-si no se especifica un período. Los resultados se consultan y exportan con:
+si no se especifica un período. En ese modo recupera desde la última fecha cubierta
+y vuelve a revisar siete días para detectar incorporaciones tardías. El solapamiento
+se ajusta con `--overlap-days`. Los resultados se consultan y exportan con:
 
 ```powershell
 .\.venv\Scripts\epe-boletin.exe --data-dir var status
@@ -77,6 +79,18 @@ $env:EPE_OPENAI_MODEL = "modelo-habilitado-en-la-cuenta"
 `build-email` adjunta únicamente los documentos de las publicaciones seleccionadas
 y divide el boletín en varios `.eml` cuando el límite configurado con `--max-mb`
 no permite enviarlo como una sola pieza.
+
+La base, los documentos y las reglas pueden respaldarse de manera transaccional:
+
+```powershell
+.\.venv\Scripts\epe-boletin.exe --data-dir var `
+  --rules config\relevance_rules.json backup var\backups\boletin.zip
+```
+
+El ZIP contiene un manifiesto con tamaño y SHA-256 de cada archivo. La preparación
+de la tarea diaria de Windows está documentada en
+[OPERACION_WINDOWS.md](OPERACION_WINDOWS.md); los scripts no instalan la tarea por
+sí solos durante el desarrollo.
 
 ## Desarrollo
 

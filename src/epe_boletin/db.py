@@ -238,6 +238,14 @@ class Database:
                     checked_at=excluded.checked_at, error=excluded.error
             """, (day.isoformat(), status, pages, count, int(has_supplement), utc_now(), error))
 
+    def last_complete_date(self) -> date | None:
+        with self.connect() as connection:
+            row = connection.execute("""
+                SELECT MAX(publication_date) value FROM coverage
+                WHERE source='BORA' AND status='complete'
+            """).fetchone()
+            return date.fromisoformat(row["value"]) if row and row["value"] else None
+
     def upsert_publication(self, item: Publication, request_document: bool) -> int:
         return self.upsert_publications(((item, request_document),))[item.source_id]
 

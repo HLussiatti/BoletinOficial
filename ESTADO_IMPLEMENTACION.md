@@ -30,6 +30,12 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   registrado y credencial tomada del entorno;
 - generación de boletines `.eml` en modo simulación, con cuerpo de texto y HTML,
   PDF y anexos, y división automática por límite de tamaño;
+- recuperación diaria desde la última cobertura completa, con siete días de
+  solapamiento configurables;
+- respaldo ZIP transaccional de SQLite, documentos y reglas, con manifiesto y
+  huellas SHA-256;
+- scripts de Windows preparados para la ejecución diaria a las 05:30, sin haber
+  instalado todavía la tarea programada.
 - descubrimiento, descarga y almacenamiento separado de anexos;
 - consulta de estado y exportación CSV;
 - pruebas locales sin red sobre la edición del 29/05/2025.
@@ -57,6 +63,9 @@ no aplicables.
 Los dos resúmenes conceptuales aprobados se importaron como revisión humana. Con
 ellos se generó un correo de simulación de 727.692 bytes que contiene las dos
 publicaciones y tres adjuntos. No se realizó ningún envío.
+
+El respaldo de la validación contiene la base, los cinco PDF y la configuración de
+reglas. Se verificaron las siete huellas del manifiesto contra el contenido del ZIP.
 
 ## Próximo trabajo
 

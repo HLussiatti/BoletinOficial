@@ -5,10 +5,11 @@ import json
 import logging
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from .bora import BoraClient
+from .backup import create_backup
 from .db import Database
 from .documents import extract_pdf
 from .mail import build_email_batches
@@ -40,6 +41,14 @@ def parse_date(value: str) -> date:
         raise argparse.ArgumentTypeError("Use una fecha AAAA-MM-DD") from exc
 
 
+def daily_start(last_complete: date | None, today: date, overlap_days: int) -> date:
+    if overlap_days < 1:
+        raise ValueError("overlap_days debe ser al menos 1")
+    if last_complete is None:
+        return today
+    return min(last_complete, today) - timedelta(days=overlap_days - 1)
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="epe-boletin")
     result.add_argument("--data-dir", type=Path, default=Path("var"),
@@ -60,6 +69,8 @@ def parser() -> argparse.ArgumentParser:
                          help="Tiempo máximo por intento HTTP, en segundos")
     execute.add_argument("--max-attempts", type=int, default=3,
                          help="Cantidad máxima de intentos HTTP")
+    execute.add_argument("--overlap-days", type=int, default=7,
+                         help="Días a revisar nuevamente en el modo diario")
     commands.add_parser("status", help="Mostrar el último estado operativo")
     commands.add_parser(
         "structure-documents",
@@ -87,6 +98,10 @@ def parser() -> argparse.ArgumentParser:
     email.add_argument("--from", dest="sender", default="boletin-epesf@localhost")
     email.add_argument("--to", dest="recipients", action="append", default=[])
     email.add_argument("--max-mb", type=float, default=20)
+    backup = commands.add_parser(
+        "backup", help="Respaldar la base, documentos y reglas en un ZIP"
+    )
+    backup.add_argument("destination", type=Path)
     export = commands.add_parser("export-csv", help="Exportar publicaciones para consulta")
     export.add_argument("destination", type=Path)
     export.add_argument("--all", action="store_true",
@@ -241,10 +256,27 @@ def main(argv: list[str] | None = None) -> int:
             for item in artifacts
         ]}, ensure_ascii=False, indent=2))
         return 0
+    if args.command == "backup":
+        database.migrate()
+        try:
+            result = create_backup(args.data_dir, args.destination, args.rules)
+        except OSError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
 
     today = date.today()
-    date_from = args.date_from or today
-    date_to = args.date_to or date_from
+    if args.overlap_days < 1:
+        parser().error("--overlap-days debe ser al menos 1")
+    if args.mode == "daily" and args.date_from is None:
+        database.migrate()
+        last_complete = database.last_complete_date()
+        date_from = daily_start(last_complete, today, args.overlap_days)
+        date_to = args.date_to or today
+    else:
+        date_from = args.date_from or today
+        date_to = args.date_to or date_from
     if date_to < date_from:
         parser().error("--to no puede ser anterior a --from")
     configure_logging(args.data_dir)
