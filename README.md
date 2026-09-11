@@ -114,3 +114,5 @@ Las muestras incluyen dos ediciones consecutivas —29 y 30 de mayo de 2025— c
 que se registra junto con la edición principal.
 
 El alcance y las etapas completas están en [PLAN_DE_TRABAJO.md](PLAN_DE_TRABAJO.md).
+La construcción del ejecutable portable de Windows se describe en
+[BUILD_WINDOWS.md](BUILD_WINDOWS.md).

@@ -38,6 +38,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   integridad de SQLite y claves foráneas antes de publicar el resultado;
 - scripts de Windows preparados para la ejecución diaria a las 05:30, sin haber
   instalado todavía la tarea programada.
+- construcción reproducible con PyInstaller de un paquete portable para Windows
+  x64, con ejecutable, reglas, scripts y manuales.
 - descubrimiento, descarga y almacenamiento separado de anexos;
 - consulta de estado y exportación CSV;
 - pruebas locales sin red sobre la edición del 29/05/2025.
@@ -73,11 +75,16 @@ reglas. Se verificaron las siete huellas del manifiesto contra el contenido del 
 También se restauró en una carpeta nueva y se comprobaron los 91 registros, los dos
 resúmenes y los cinco documentos. Una copia alterada fue rechazada correctamente.
 
+El paquete `epe-boletin-0.1.0-windows-x64.zip` se extrajo en una carpeta aislada. Su
+ejecutable inició una base nueva, mostró el estado y procesó las muestras locales
+sin depender del intérprete del proyecto. La salida de consola se fijó en UTF-8.
+
 ## Próximo trabajo
 
 1. Construir la interfaz local de consulta, filtros, detalle y apertura de PDF.
 2. Validar el resumen automático con una credencial y un modelo habilitado.
-3. Integrar el correo institucional, la programación de Windows y el instalador.
+3. Integrar el correo institucional, la programación de Windows y convertir el
+   paquete portable en un instalador.
 4. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
