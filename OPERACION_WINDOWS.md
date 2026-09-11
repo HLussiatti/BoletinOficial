@@ -51,3 +51,15 @@ reglas a un ZIP. Cada entrada figura en `manifest.json` con su tamaño y SHA-256
 
 Los respaldos deben copiarse a la ubicación institucional que se defina para la
 custodia. Esa ubicación y la retención todavía requieren definición operativa.
+
+Para restaurar, se utiliza una carpeta nueva o vacía. El comando verifica primero
+el manifiesto, las huellas, la integridad de SQLite y sus claves foráneas:
+
+```powershell
+.\epe-boletin.exe restore `
+  C:\EPESF\Boletin\respaldos\boletin.zip `
+  C:\EPESF\Boletin\datos-restaurados
+```
+
+Después de comprobar el resultado, la tarea programada puede apuntarse a la carpeta
+restaurada. El comando no reemplaza automáticamente una base operativa existente.

@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from .bora import BoraClient
-from .backup import create_backup
+from .backup import create_backup, restore_backup
 from .db import Database
 from .documents import extract_pdf
 from .mail import build_email_batches
@@ -102,6 +102,11 @@ def parser() -> argparse.ArgumentParser:
         "backup", help="Respaldar la base, documentos y reglas en un ZIP"
     )
     backup.add_argument("destination", type=Path)
+    restore = commands.add_parser(
+        "restore", help="Restaurar un respaldo verificado en una carpeta vacía"
+    )
+    restore.add_argument("archive", type=Path)
+    restore.add_argument("destination", type=Path)
     export = commands.add_parser("export-csv", help="Exportar publicaciones para consulta")
     export.add_argument("destination", type=Path)
     export.add_argument("--all", action="store_true",
@@ -261,6 +266,14 @@ def main(argv: list[str] | None = None) -> int:
         try:
             result = create_backup(args.data_dir, args.destination, args.rules)
         except OSError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "restore":
+        try:
+            result = restore_backup(args.archive, args.destination)
+        except (OSError, ValueError) as exc:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
         print(json.dumps(result, ensure_ascii=False, indent=2))

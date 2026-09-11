@@ -92,6 +92,14 @@ de la tarea diaria de Windows está documentada en
 [OPERACION_WINDOWS.md](OPERACION_WINDOWS.md); los scripts no instalan la tarea por
 sí solos durante el desarrollo.
 
+La restauración valida todas las huellas y la integridad de SQLite antes de dejar
+los datos disponibles, y exige como destino una carpeta nueva o vacía:
+
+```powershell
+.\.venv\Scripts\epe-boletin.exe restore `
+  var\backups\boletin.zip C:\EPESF\Boletin\datos-restaurados
+```
+
 ## Desarrollo
 
 Las pruebas no acceden a Internet:

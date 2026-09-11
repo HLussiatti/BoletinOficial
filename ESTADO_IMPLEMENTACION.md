@@ -34,6 +34,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   solapamiento configurables;
 - respaldo ZIP transaccional de SQLite, documentos y reglas, con manifiesto y
   huellas SHA-256;
+- restauración segura en una carpeta vacía, con validación de todas las huellas,
+  integridad de SQLite y claves foráneas antes de publicar el resultado;
 - scripts de Windows preparados para la ejecución diaria a las 05:30, sin haber
   instalado todavía la tarea programada.
 - descubrimiento, descarga y almacenamiento separado de anexos;
@@ -68,6 +70,8 @@ publicaciones y tres adjuntos. No se realizó ningún envío.
 
 El respaldo de la validación contiene la base, los cinco PDF y la configuración de
 reglas. Se verificaron las siete huellas del manifiesto contra el contenido del ZIP.
+También se restauró en una carpeta nueva y se comprobaron los 91 registros, los dos
+resúmenes y los cinco documentos. Una copia alterada fue rechazada correctamente.
 
 ## Próximo trabajo
 

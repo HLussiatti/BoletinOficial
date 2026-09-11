@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import sqlite3
 import tempfile
 import zipfile
@@ -60,3 +61,61 @@ def create_backup(data_dir: Path, destination: Path,
         temporary.replace(destination)
     return {"path": str(destination), "files": len(files),
             "bytes": destination.stat().st_size}
+
+
+def restore_backup(archive_path: Path, destination: Path) -> dict[str, object]:
+    if destination.exists() and any(destination.iterdir()):
+        raise FileExistsError(
+            f"La carpeta de restauración debe estar vacía: {destination}"
+        )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive_path) as archive:
+        try:
+            manifest = json.loads(archive.read("manifest.json"))
+            entries = manifest["files"]
+            if not isinstance(entries, list) or not entries:
+                raise ValueError("files")
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError("El respaldo no contiene un manifiesto válido") from exc
+        declared = {str(item["path"]): item for item in entries}
+        if len(declared) != len(entries) or "boletin.sqlite3" not in declared:
+            raise ValueError("El manifiesto del respaldo está incompleto")
+        available = set(archive.namelist())
+        if not set(declared).issubset(available):
+            raise ValueError("Faltan archivos declarados en el respaldo")
+
+        staging = Path(tempfile.mkdtemp(prefix="epe-restore-", dir=destination.parent))
+        try:
+            for name, metadata in declared.items():
+                relative = Path(name)
+                if relative.is_absolute() or ".." in relative.parts:
+                    raise ValueError(f"Ruta insegura en el respaldo: {name}")
+                target = staging / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                digest = hashlib.sha256()
+                byte_count = 0
+                with archive.open(name) as source, target.open("wb") as output:
+                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                        byte_count += len(chunk)
+                        output.write(chunk)
+                if byte_count != int(metadata["bytes"]):
+                    raise ValueError(f"Tamaño inválido en el respaldo: {name}")
+                if digest.hexdigest() != str(metadata["sha256"]):
+                    raise ValueError(f"Huella inválida en el respaldo: {name}")
+
+            database = sqlite3.connect(staging / "boletin.sqlite3")
+            try:
+                integrity = database.execute("PRAGMA integrity_check").fetchone()[0]
+                foreign_keys = database.execute("PRAGMA foreign_key_check").fetchall()
+            finally:
+                database.close()
+            if integrity != "ok" or foreign_keys:
+                raise ValueError("La base restaurada no superó el control de integridad")
+            if destination.exists():
+                destination.rmdir()
+            shutil.move(str(staging), str(destination))
+        except Exception:
+            shutil.rmtree(staging, ignore_errors=True)
+            raise
+    return {"path": str(destination), "files": len(declared)}
