@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -10,8 +11,14 @@ from pathlib import Path
 from .bora import BoraClient
 from .db import Database
 from .documents import extract_pdf
+from .mail import build_email_batches
 from .pipeline import run
 from .relevance import DEFAULT_RULES, classify, load_rules
+from .summaries import (
+    PROMPT_VERSION,
+    ConceptualSummary,
+    OpenAISummarizer,
+)
 
 
 def configure_logging(data_dir: Path) -> Path:
@@ -61,6 +68,25 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser(
         "reclassify", help="Aplicar las reglas vigentes a los registros existentes"
     )
+    summarize = commands.add_parser(
+        "summarize", help="Generar resúmenes conceptuales pendientes mediante API"
+    )
+    summarize.add_argument("--model", help="Modelo configurado para los resúmenes")
+    summarize.add_argument("--max-items", type=int)
+    summarize.add_argument("--api-key-env", default="OPENAI_API_KEY",
+                           help="Variable de entorno que contiene la credencial")
+    import_summaries = commands.add_parser(
+        "import-summaries", help="Importar resúmenes revisados desde un JSON"
+    )
+    import_summaries.add_argument("source", type=Path)
+    email = commands.add_parser(
+        "build-email", help="Crear uno o más correos .eml sin enviarlos"
+    )
+    email.add_argument("--date", required=True, type=parse_date)
+    email.add_argument("--output", required=True, type=Path)
+    email.add_argument("--from", dest="sender", default="boletin-epesf@localhost")
+    email.add_argument("--to", dest="recipients", action="append", default=[])
+    email.add_argument("--max-mb", type=float, default=20)
     export = commands.add_parser("export-csv", help="Exportar publicaciones para consulta")
     export.add_argument("destination", type=Path)
     export.add_argument("--all", action="store_true",
@@ -125,6 +151,95 @@ def main(argv: list[str] | None = None) -> int:
             processed += 1
         print(json.dumps({"processed": processed, "rules_version": rules.version,
                           "results": counts}, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "summarize":
+        database.migrate()
+        model = args.model or os.environ.get("EPE_OPENAI_MODEL", "")
+        api_key = os.environ.get(args.api_key_env, "")
+        try:
+            summarizer = OpenAISummarizer(api_key, model)
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        completed = failed = 0
+        for candidate in database.summary_candidates(
+            model, PROMPT_VERSION, args.max_items
+        ):
+            try:
+                summary = summarizer.summarize(candidate)
+                database.save_summary(candidate, summary, model, PROMPT_VERSION)
+                completed += 1
+            except Exception as exc:
+                database.mark_summary_error(
+                    candidate, model, PROMPT_VERSION, str(exc)
+                )
+                failed += 1
+        print(json.dumps({"completed": completed, "failed": failed,
+                          "model": model, "prompt_version": PROMPT_VERSION},
+                         ensure_ascii=False, indent=2))
+        return 0 if not failed else 2
+    if args.command == "import-summaries":
+        database.migrate()
+        try:
+            payload = json.loads(args.source.read_text(encoding="utf-8"))
+            prompt_version = str(payload["prompt_version"])
+            entries = payload["summaries"]
+            if not isinstance(entries, list):
+                raise TypeError("summaries")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            print(f"Error: archivo de resúmenes inválido: {exc}", file=sys.stderr)
+            return 1
+        candidates = {
+            candidate.source_id: candidate
+            for candidate in database.summary_candidates(
+                "human-reviewed", prompt_version, include_completed=True
+            )
+        }
+        imported = missing = 0
+        for entry in entries:
+            if not isinstance(entry, dict):
+                print("Error: cada resumen debe ser un objeto", file=sys.stderr)
+                return 1
+            candidate = candidates.get(str(entry.get("source_id", "")))
+            if candidate is None:
+                missing += 1
+                continue
+            try:
+                needs_review = entry.get("needs_review", False)
+                if not isinstance(needs_review, bool):
+                    raise TypeError("needs_review")
+                summary = ConceptualSummary(
+                    conceptual_summary=str(entry["conceptual_summary"]).strip(),
+                    epesf_relationship=str(entry["epesf_relationship"]).strip(),
+                    effective_date=str(entry["effective_date"]).strip(),
+                    needs_review=needs_review,
+                )
+            except (KeyError, TypeError) as exc:
+                print(f"Error: resumen inválido: {exc}", file=sys.stderr)
+                return 1
+            database.save_summary(
+                candidate, summary, "human-reviewed", prompt_version
+            )
+            imported += 1
+        print(json.dumps({"imported": imported, "missing": missing,
+                          "prompt_version": prompt_version},
+                         ensure_ascii=False, indent=2))
+        return 0 if not missing else 2
+    if args.command == "build-email":
+        database.migrate()
+        try:
+            artifacts = build_email_batches(
+                database.bulletin_items(args.date), args.date, args.output,
+                args.sender, tuple(args.recipients), int(args.max_mb * 1024 * 1024),
+            )
+        except (OSError, ValueError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        print(json.dumps({"emails": [
+            {"path": str(item.path), "publications": item.item_count,
+             "attachments": item.attachment_count, "bytes": item.byte_size}
+            for item in artifacts
+        ]}, ensure_ascii=False, indent=2))
         return 0
 
     today = date.today()

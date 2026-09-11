@@ -1,0 +1,19 @@
+{
+  "prompt_version": "human-approved-2026-09-11.1",
+  "summaries": [
+    {
+      "source_id": "347303",
+      "conceptual_summary": "Sustituye el Anexo I de la Resolución 221/2026 para corregir un error material en los bloques de consumo base de electricidad del régimen de Subsidios Energéticos Focalizados. La corrección fija para septiembre de 2026 un consumo base de 200 kWh/mes en todas las zonas bioambientales. El anexo conserva además los valores diferenciados para los restantes meses y zonas. Entra en vigencia el día de su publicación.",
+      "epesf_relationship": "Incide en el régimen nacional aplicado a usuarios residenciales y puede afectar la gestión de subsidios y consumos base de la distribuidora. La aplicabilidad concreta debe validarse con el área responsable.",
+      "effective_date": "11/09/2026, día de su publicación",
+      "needs_review": true
+    },
+    {
+      "source_id": "347304",
+      "conceptual_summary": "Autoriza a la Empresa Provincial de Energía de Chubut S.A.U. a ingresar al Mercado Eléctrico Mayorista como Participante Comercializador. Ordena al Organismo Encargado del Despacho informar a los agentes del MEM y notifica a EPECH, CAMMESA y ENRGE. Entra en vigencia el día de su publicación.",
+      "epesf_relationship": "Es una decisión sectorial sobre otra empresa provincial y no contiene una obligación directa para EPESF.",
+      "effective_date": "11/09/2026, día de su publicación",
+      "needs_review": true
+    }
+  ]
+}

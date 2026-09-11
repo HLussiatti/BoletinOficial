@@ -53,6 +53,31 @@ indicados por el BORA se guardan como documentos separados vinculados al aviso.
 La aplicación conserva referencias internas de página para respaldar las fichas,
 pero el resultado destinado al usuario es un resumen conceptual de cada norma.
 
+Los resúmenes aprobados pueden importarse y el boletín puede prepararse como correo
+sin enviarlo:
+
+```powershell
+.\.venv\Scripts\epe-boletin.exe --data-dir var `
+  import-summaries tests\fixtures\summaries_20260911.json
+.\.venv\Scripts\epe-boletin.exe --data-dir var build-email `
+  --date 2026-09-11 --output var\outbox\boletin_2026_09_11.eml
+```
+
+La generación automática usa la Responses API con una salida JSON estructurada y
+`store=false`. El modelo se indica con `--model` o `EPE_OPENAI_MODEL`, y la clave se
+lee de `OPENAI_API_KEY`; ninguna credencial se guarda en el repositorio. La
+referencia técnica es la [documentación oficial de Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
+
+```powershell
+$env:OPENAI_API_KEY = "..."
+$env:EPE_OPENAI_MODEL = "modelo-habilitado-en-la-cuenta"
+.\.venv\Scripts\epe-boletin.exe --data-dir var summarize --max-items 2
+```
+
+`build-email` adjunta únicamente los documentos de las publicaciones seleccionadas
+y divide el boletín en varios `.eml` cuando el límite configurado con `--max-mb`
+no permite enviarlo como una sola pieza.
+
 ## Desarrollo
 
 Las pruebas no acceden a Internet:

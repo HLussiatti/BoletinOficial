@@ -24,6 +24,12 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
 - extracción completa de texto y registro de páginas y estado de extracción;
 - identificación interna de considerandos, parte dispositiva y artículos con sus
   páginas de origen, como respaldo para generar resúmenes conceptuales;
+- almacenamiento versionado de resúmenes conceptuales, vinculado a la huella de
+  los documentos utilizados;
+- integración preparada con la Responses API mediante salida estructurada, consumo
+  registrado y credencial tomada del entorno;
+- generación de boletines `.eml` en modo simulación, con cuerpo de texto y HTML,
+  PDF y anexos, y división automática por límite de tamaño;
 - descubrimiento, descarga y almacenamiento separado de anexos;
 - consulta de estado y exportación CSV;
 - pruebas locales sin red sobre la edición del 29/05/2025.
@@ -48,13 +54,18 @@ cinco PDF existentes se procesaron sin errores; las dos resoluciones quedaron co
 referencias de página y los documentos sin estructura normativa se marcaron como
 no aplicables.
 
+Los dos resúmenes conceptuales aprobados se importaron como revisión humana. Con
+ellos se generó un correo de simulación de 727.692 bytes que contiene las dos
+publicaciones y tres adjuntos. No se realizó ningún envío.
+
 ## Próximo trabajo
 
 1. Guardar una muestra local de una fecha con suplemento para automatizar la prueba
    del contrato ya inspeccionado en el sitio oficial.
 2. Construir la interfaz local de consulta, filtros, detalle y apertura de PDF.
-3. Automatizar el resumen conceptual ya validado y conservar su evidencia.
-4. Ampliar las pruebas a varias fechas conocidas antes del histórico.
+3. Validar el resumen automático con una credencial y un modelo habilitado.
+4. Integrar el correo institucional, la programación de Windows y el instalador.
+5. Ampliar las pruebas a varias fechas conocidas antes del histórico.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
 validación sobre un equipo Windows limpio continúa pendiente para la etapa del

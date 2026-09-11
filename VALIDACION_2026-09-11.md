@@ -76,3 +76,8 @@ la opción explícita `--all` para controles de auditoría.
 La reclasificación posterior con la configuración versionada `2026-09-11.1`
 reprodujo el resultado aprobado: 89 publicaciones descartadas y 2 seleccionadas.
 No fue necesario volver a consultar el BORA ni descargar los PDF.
+
+Los resúmenes conceptuales de las Resoluciones 238/2026 y 239/2026 se importaron a
+la base como contenido revisado por una persona. El correo de simulación resultante
+contiene ambas fichas y adjunta los dos PDF principales y el Anexo 1 de la
+Resolución 238/2026. El archivo se creó localmente y no fue enviado.

@@ -8,9 +8,11 @@ from pathlib import Path
 from typing import Iterator
 
 from .documents import DocumentSection
+from .mail import BulletinItem
 from .models import Publication
+from .summaries import ConceptualSummary, SummaryCandidate, source_digest
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 def utc_now() -> str:
@@ -128,6 +130,25 @@ class Database:
                 );
                 CREATE INDEX IF NOT EXISTS ix_document_sections_document
                     ON document_sections(document_id, section_type, ordinal);
+                CREATE TABLE IF NOT EXISTS summaries (
+                    id INTEGER PRIMARY KEY,
+                    publication_id INTEGER NOT NULL REFERENCES publications(id),
+                    conceptual_summary TEXT NOT NULL,
+                    epesf_relationship TEXT NOT NULL,
+                    effective_date TEXT NOT NULL,
+                    needs_review INTEGER NOT NULL DEFAULT 0,
+                    model TEXT NOT NULL,
+                    prompt_version TEXT NOT NULL,
+                    source_sha256 TEXT NOT NULL,
+                    input_tokens INTEGER,
+                    output_tokens INTEGER,
+                    created_at TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('complete','error')),
+                    error TEXT,
+                    UNIQUE(publication_id, model, prompt_version, source_sha256)
+                );
+                CREATE INDEX IF NOT EXISTS ix_summaries_publication
+                    ON summaries(publication_id,created_at);
             """)
             row = connection.execute("SELECT version FROM schema_info").fetchone()
             if row is None:
@@ -180,6 +201,9 @@ class Database:
                         ALTER TABLE publications ADD COLUMN relevance_rules_version
                         TEXT NOT NULL DEFAULT 'builtin-2026-09-11.1'
                     """)
+                connection.execute("UPDATE schema_info SET version=4")
+                current_version = 4
+            if current_version == 4:
                 connection.execute("UPDATE schema_info SET version=?", (SCHEMA_VERSION,))
 
     def start_run(self, mode: str, date_from: date, date_to: date) -> int:
@@ -395,6 +419,132 @@ class Database:
                 (publication_id,),
             )
 
+    def summary_candidates(self, model: str, prompt_version: str,
+                           limit: int | None = None,
+                           include_completed: bool = False) -> list[SummaryCandidate]:
+        with self.connect() as connection:
+            publications = connection.execute("""
+                SELECT * FROM publications
+                WHERE relevance IN ('direct_epesf','potential_sector_impact')
+                  AND document_status='downloaded'
+                ORDER BY publication_date,id
+            """).fetchall()
+            results: list[SummaryCandidate] = []
+            for publication in publications:
+                documents = connection.execute("""
+                    SELECT kind,sha256,extracted_text FROM documents
+                    WHERE publication_id=?
+                      AND extraction_status IN ('complete','insufficient')
+                    ORDER BY kind,id
+                """, (publication["id"],)).fetchall()
+                if not documents:
+                    continue
+                digest, full_text = source_digest([
+                    (str(row["kind"]), str(row["sha256"]), str(row["extracted_text"]))
+                    for row in documents
+                ])
+                exists = connection.execute("""
+                    SELECT 1 FROM summaries
+                    WHERE publication_id=? AND model=? AND prompt_version=?
+                      AND source_sha256=? AND status='complete'
+                """, (publication["id"], model, prompt_version, digest)).fetchone()
+                if exists and not include_completed:
+                    continue
+                results.append(SummaryCandidate(
+                    publication_id=int(publication["id"]),
+                    source_id=str(publication["source_id"]),
+                    title=str(publication["title"]), agency=str(publication["agency"]),
+                    publication_date=str(publication["publication_date"]),
+                    relevance=str(publication["relevance"]),
+                    relevance_reason=str(publication["relevance_reason"]),
+                    detail_url=str(publication["detail_url"]), full_text=full_text,
+                    source_sha256=digest,
+                ))
+                if limit is not None and len(results) >= limit:
+                    break
+            return results
+
+    def save_summary(self, candidate: SummaryCandidate, summary: ConceptualSummary,
+                     model: str, prompt_version: str) -> None:
+        with self.connect() as connection:
+            connection.execute("""
+                INSERT INTO summaries(
+                    publication_id,conceptual_summary,epesf_relationship,
+                    effective_date,needs_review,model,prompt_version,source_sha256,
+                    input_tokens,output_tokens,created_at,status,error
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,'complete',NULL)
+                ON CONFLICT(publication_id,model,prompt_version,source_sha256)
+                DO UPDATE SET conceptual_summary=excluded.conceptual_summary,
+                    epesf_relationship=excluded.epesf_relationship,
+                    effective_date=excluded.effective_date,
+                    needs_review=excluded.needs_review,
+                    input_tokens=excluded.input_tokens,
+                    output_tokens=excluded.output_tokens,
+                    created_at=excluded.created_at,status='complete',error=NULL
+            """, (
+                candidate.publication_id, summary.conceptual_summary,
+                summary.epesf_relationship, summary.effective_date,
+                int(summary.needs_review), model, prompt_version,
+                candidate.source_sha256, summary.input_tokens,
+                summary.output_tokens, utc_now(),
+            ))
+            connection.execute(
+                "UPDATE publications SET summary_status='ready' WHERE id=?",
+                (candidate.publication_id,),
+            )
+
+    def mark_summary_error(self, candidate: SummaryCandidate, model: str,
+                           prompt_version: str, error: str) -> None:
+        with self.connect() as connection:
+            connection.execute("""
+                INSERT INTO summaries(
+                    publication_id,conceptual_summary,epesf_relationship,
+                    effective_date,needs_review,model,prompt_version,source_sha256,
+                    created_at,status,error
+                ) VALUES(?,'','','',1,?,?,?,?,'error',?)
+                ON CONFLICT(publication_id,model,prompt_version,source_sha256)
+                DO UPDATE SET created_at=excluded.created_at,status='error',
+                    error=excluded.error
+            """, (candidate.publication_id, model, prompt_version,
+                  candidate.source_sha256, utc_now(), error))
+            connection.execute(
+                "UPDATE publications SET summary_status='error' WHERE id=?",
+                (candidate.publication_id,),
+            )
+
+    def bulletin_items(self, day: date) -> list[BulletinItem]:
+        with self.connect() as connection:
+            rows = connection.execute("""
+                SELECT p.id,p.source_id,p.title,p.agency,p.publication_date,p.detail_url,
+                       s.conceptual_summary,s.epesf_relationship,s.effective_date
+                FROM publications p
+                JOIN summaries s ON s.id=(
+                    SELECT s2.id FROM summaries s2
+                    WHERE s2.publication_id=p.id AND s2.status='complete'
+                    ORDER BY s2.id DESC LIMIT 1
+                )
+                WHERE p.publication_date=?
+                  AND p.relevance IN ('direct_epesf','potential_sector_impact')
+                ORDER BY p.agency,p.title
+            """, (day.isoformat(),)).fetchall()
+            results: list[BulletinItem] = []
+            for row in rows:
+                documents = connection.execute("""
+                    SELECT path FROM documents WHERE publication_id=?
+                    ORDER BY CASE kind WHEN 'main' THEN 0 ELSE 1 END,kind,id
+                """, (row["id"],)).fetchall()
+                results.append(BulletinItem(
+                    source_id=str(row["source_id"]), title=str(row["title"]),
+                    agency=str(row["agency"]),
+                    publication_date=str(row["publication_date"]),
+                    conceptual_summary=str(row["conceptual_summary"]),
+                    epesf_relationship=str(row["epesf_relationship"]),
+                    effective_date=str(row["effective_date"]),
+                    detail_url=str(row["detail_url"]),
+                    documents=tuple(Path(item["path"]) for item in documents),
+                ))
+            return results
+
     def status(self) -> dict[str, object]:
         with self.connect() as connection:
             last_run = connection.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 1").fetchone()
@@ -411,12 +561,17 @@ class Database:
                        SUM(structure_status='error') structure_errors
                 FROM documents
             """).fetchone()
+            summary_counts = connection.execute("""
+                SELECT SUM(status='complete') ready,SUM(status='error') errors
+                FROM summaries
+            """).fetchone()
             pending = connection.execute(
                 "SELECT COUNT(*) count FROM coverage WHERE status='failed'"
             ).fetchone()["count"]
             return {"last_run": dict(last_run) if last_run else None,
                     "publications": dict(counts),
-                    "documents": dict(document_counts), "failed_dates": pending}
+                    "documents": dict(document_counts),
+                    "summaries": dict(summary_counts), "failed_dates": pending}
 
     def export_csv(self, destination: Path, include_all: bool = False) -> int:
         destination.parent.mkdir(parents=True, exist_ok=True)
