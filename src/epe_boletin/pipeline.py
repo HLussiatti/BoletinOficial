@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import replace
 from contextlib import contextmanager
@@ -14,6 +15,7 @@ from .relevance import classify
 
 RELEVANT = {"direct_epesf", "potential_sector_impact"}
 REQUIRES_DOCUMENT = RELEVANT | {"needs_review"}
+LOGGER = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -45,6 +47,8 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
     run_id = db.start_run(mode, date_from, date_to)
     seen = relevant = failed = not_published = downloaded = 0
     errors: list[str] = []
+    LOGGER.info("Inicio de ejecución mode=%s from=%s to=%s download=%s",
+                mode, date_from, date_to, download)
     try:
         with execution_lock(data_dir / "run.lock"):
             for day in days_between(date_from, date_to):
@@ -55,6 +59,7 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                     if fixture is None:
                         message = f"{day}: falta la muestra local {candidate}"
                         db.save_coverage(day, "failed", error=message)
+                        LOGGER.error(message)
                         errors.append(message)
                         failed += 1
                         continue
@@ -85,7 +90,9 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                     downloaded += 1
                                 except Exception as exc:
                                     db.mark_document_error(publication_id)
-                                    errors.append(f"{day}: PDF {item.source_id}: {exc}")
+                                    message = f"{day}: PDF {item.source_id}: {exc}"
+                                    errors.append(message)
+                                    LOGGER.exception(message)
                                     failed += 1
                             annex_texts: list[str] = []
                             if download and not fixture_dir and item.has_annexes:
@@ -109,7 +116,9 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                             downloaded += 1
                                         annex_texts.append(annex_text)
                                 except Exception as exc:
-                                    errors.append(f"{day}: anexos {item.source_id}: {exc}")
+                                    message = f"{day}: anexos {item.source_id}: {exc}"
+                                    errors.append(message)
+                                    LOGGER.exception(message)
                                     failed += 1
                             if full_text is not None:
                                 combined_text = "\n\n".join([full_text, *annex_texts])
@@ -127,17 +136,22 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                      len(edition.publications), edition.has_supplement)
                 except EditionNotPublished:
                     db.save_coverage(day, "not_published")
+                    LOGGER.info("Sin edición publicada para %s", day)
                     not_published += 1
                 except Exception as exc:
                     failed += 1
                     message = f"{day}: {exc}"
                     errors.append(message)
                     db.save_coverage(day, "failed", error=str(exc))
+                    LOGGER.exception(message)
         status = "complete" if not failed else "partial"
         db.finish_run(run_id, status, seen, relevant, "\n".join(errors) or None)
     except Exception as exc:
         db.finish_run(run_id, "failed", seen, relevant, str(exc))
+        LOGGER.exception("La ejecución %s finalizó con error", run_id)
         raise
+    LOGGER.info("Fin de ejecución id=%s status=%s seen=%s relevant=%s downloaded=%s failed=%s",
+                run_id, status, seen, relevant, downloaded, failed)
     return {"run_id": run_id, "status": status, "seen": seen,
             "relevant": relevant, "downloaded": downloaded,
             "not_published": not_published, "failed": failed}

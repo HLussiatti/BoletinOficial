@@ -8,6 +8,9 @@ from pathlib import Path
 
 from epe_boletin.bora import (
     BoraClient,
+    BoraError,
+    BoraNetworkError,
+    EditionNotPublished,
     document_stem,
     parse_expected_count,
     parse_publications,
@@ -77,6 +80,122 @@ class BoraParserTest(unittest.TestCase):
             self.assertEqual(64, len(digest))
             self.assertEqual(size, path.stat().st_size)
             self.assertFalse(path.with_suffix(".pdf.part").exists())
+
+    def test_transient_http_failure_is_retried(self):
+        class Response:
+            url = "https://example.test/edition"
+            text = "ok"
+
+            def __init__(self, status_code):
+                self.status_code = status_code
+
+            def raise_for_status(self):
+                return None
+
+        class Session:
+            def __init__(self):
+                self.headers = {}
+                self.calls = 0
+
+            def get(self, *args, **kwargs):
+                self.calls += 1
+                return Response(503 if self.calls < 3 else 200)
+
+        session = Session()
+        client = BoraClient(session, max_attempts=3, sleep=lambda _: None)
+        text, _ = client._get_text("https://example.test/edition")
+        self.assertEqual("ok", text)
+        self.assertEqual(3, session.calls)
+
+    def test_transient_http_failure_stops_after_configured_attempts(self):
+        class Response:
+            status_code = 503
+
+            def raise_for_status(self):
+                return None
+
+        class Session:
+            def __init__(self):
+                self.headers = {}
+                self.calls = 0
+
+            def get(self, *args, **kwargs):
+                self.calls += 1
+                return Response()
+
+        session = Session()
+        client = BoraClient(session, max_attempts=2, sleep=lambda _: None)
+        with self.assertRaises(BoraNetworkError):
+            client._get_text("https://example.test/edition")
+        self.assertEqual(2, session.calls)
+
+    def test_absent_edition_is_identified_without_parsing_redirected_day(self):
+        class Response:
+            status_code = 200
+            url = "https://www.boletinoficial.gob.ar/seccion/primera/20260910"
+            text = "<script>fechaSeleccionadaYMD = '20260910';</script>"
+
+            def raise_for_status(self):
+                return None
+
+        class Session:
+            def __init__(self):
+                self.headers = {}
+
+            def get(self, *args, **kwargs):
+                return Response()
+
+        with self.assertRaises(EditionNotPublished):
+            BoraClient(Session()).fetch_edition(date(2026, 9, 11))
+
+    def test_invalid_pdf_is_rejected_without_creating_a_file(self):
+        class Response:
+            status_code = 200
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"pdfBase64": base64.b64encode(b"not-a-pdf").decode("ascii")}
+
+        class Session:
+            def __init__(self):
+                self.headers = {}
+
+            def post(self, *args, **kwargs):
+                return Response()
+
+        item = parse_publications(SAMPLE.read_text(encoding="utf-8"), date(2025, 5, 29))[0]
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            with self.assertRaises(BoraError):
+                BoraClient(Session()).download_pdf(item, output)
+            self.assertEqual([], list(output.iterdir()))
+
+    def test_failed_source_is_persisted_in_run_and_coverage(self):
+        class FailingClient:
+            def fetch_edition(self, *args, **kwargs):
+                raise BoraNetworkError("servicio no disponible")
+
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            database = Database(data / "boletin.sqlite3")
+            result = run(database, FailingClient(), data, "daily",
+                         date(2026, 9, 11), date(2026, 9, 11), download=False)
+            self.assertEqual("partial", result["status"])
+            self.assertEqual(1, result["failed"])
+            with database.connect() as connection:
+                coverage = connection.execute(
+                    "SELECT status,error FROM coverage WHERE publication_date = ?",
+                    ("2026-09-11",),
+                ).fetchone()
+                recorded_run = connection.execute(
+                    "SELECT status,error FROM runs ORDER BY id DESC LIMIT 1"
+                ).fetchone()
+            self.assertEqual("failed", coverage["status"])
+            self.assertIn("servicio no disponible", coverage["error"])
+            self.assertEqual("partial", recorded_run["status"])
+            self.assertIn("servicio no disponible", recorded_run["error"])
 
     def test_generic_energy_agency_requires_review(self):
         item = Publication(

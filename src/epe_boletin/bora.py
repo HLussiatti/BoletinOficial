@@ -4,7 +4,9 @@ import base64
 import hashlib
 import json
 import re
+import time
 import unicodedata
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -36,6 +38,10 @@ class BoraError(RuntimeError):
 
 
 class EditionNotPublished(BoraError):
+    pass
+
+
+class BoraNetworkError(BoraError):
     pass
 
 
@@ -106,16 +112,45 @@ def document_stem(publication: Publication) -> str:
 
 
 class BoraClient:
-    def __init__(self, session: requests.Session | None = None, timeout: float = 30):
+    RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+    def __init__(self, session: requests.Session | None = None, timeout: float = 30,
+                 max_attempts: int = 3, backoff_seconds: float = 0.5,
+                 sleep: Callable[[float], None] = time.sleep):
+        if max_attempts < 1:
+            raise ValueError("max_attempts debe ser al menos 1")
         self.session = session or requests.Session()
         self.timeout = timeout
+        self.max_attempts = max_attempts
+        self.backoff_seconds = backoff_seconds
+        self.sleep = sleep
         self.session.headers.update({
             "User-Agent": "EPESF-Boletin/0.1 (+seguimiento normativo institucional)",
         })
 
+    def _request(self, method: str, url: str, **kwargs):
+        last_error: BoraNetworkError | None = None
+        for attempt in range(self.max_attempts):
+            try:
+                request = getattr(self.session, method.lower())
+                response = request(url, timeout=self.timeout, **kwargs)
+                status = getattr(response, "status_code", 200)
+                if status not in self.RETRYABLE_STATUS:
+                    response.raise_for_status()
+                    return response
+                last_error = BoraNetworkError(f"El BORA respondió HTTP {status}: {url}")
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                last_error = BoraNetworkError(f"No se pudo conectar con el BORA: {url}")
+                last_error.__cause__ = exc
+            except requests.RequestException as exc:
+                raise BoraNetworkError(f"Falló la consulta al BORA: {url}") from exc
+            if attempt + 1 < self.max_attempts:
+                self.sleep(self.backoff_seconds * (2 ** attempt))
+        assert last_error is not None
+        raise last_error
+
     def _get_text(self, url: str) -> tuple[str, str]:
-        response = self.session.get(url, timeout=self.timeout)
-        response.raise_for_status()
+        response = self._request("get", url)
         return response.text, response.url
 
     def fetch_edition(self, day: date, fixture: Path | None = None) -> Edition:
@@ -144,9 +179,13 @@ class BoraClient:
         while has_more and not fixture:
             endpoint = (f"{BASE_URL}/seccion/actualizar/primera?pag={next_page}"
                         f"&ult_rubro={quote(last_category)}")
-            response = self.session.get(endpoint, timeout=self.timeout)
-            response.raise_for_status()
-            payload = response.json()
+            response = self._request("get", endpoint)
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise BoraError("El BORA respondió una página adicional inválida") from exc
+            if not isinstance(payload, dict):
+                raise BoraError("El BORA respondió una página adicional inesperada")
             extra = parse_publications(payload.get("html", ""), day)
             for publication in extra:
                 if publication.source_id not in seen:
@@ -178,13 +217,12 @@ class BoraClient:
         if not match:
             raise BoraError(f"Enlace de aviso inválido: {publication.detail_url}")
         endpoint = f"{BASE_URL}/pdf/download_aviso"
-        response = self.session.post(endpoint, data={
+        response = self._request("post", endpoint, data={
             "nombreSeccion": publication.section,
             "idAviso": publication.source_id,
             "fechaPublicacion": publication.publication_date.strftime("%Y%m%d"),
         }, headers={"Referer": publication.detail_url,
-                    "X-Requested-With": "XMLHttpRequest"}, timeout=self.timeout)
-        response.raise_for_status()
+                    "X-Requested-With": "XMLHttpRequest"})
         content = self._decode_pdf(response)
         output_dir.mkdir(parents=True, exist_ok=True)
         name = document_stem(publication) + ".pdf"
@@ -209,14 +247,13 @@ class BoraClient:
 
     def download_annex(self, publication: Publication, annex: Annex,
                        output_dir: Path) -> tuple[Path, str, int]:
-        response = self.session.post(urljoin(BASE_URL, annex.endpoint), data={
+        response = self._request("post", urljoin(BASE_URL, annex.endpoint), data={
             "seccion": annex.section,
             "nroAnexo": annex.number,
             "idAnexo": annex.source_id,
             "fechaPublicacion": annex.publication_date.strftime("%Y%m%d"),
         }, headers={"Referer": publication.detail_url,
-                    "X-Requested-With": "XMLHttpRequest"}, timeout=self.timeout)
-        response.raise_for_status()
+                    "X-Requested-With": "XMLHttpRequest"})
         content = self._decode_pdf(response)
         output_dir.mkdir(parents=True, exist_ok=True)
         name = f"{document_stem(publication)}_Anexo_{_safe_component(annex.number)}.pdf"
@@ -224,7 +261,13 @@ class BoraClient:
 
     @staticmethod
     def _decode_pdf(response) -> bytes:
-        encoded = response.json().get("pdfBase64")
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise BoraError("El BORA respondió un documento inválido") from exc
+        if not isinstance(payload, dict):
+            raise BoraError("El BORA respondió un documento inesperado")
+        encoded = payload.get("pdfBase64")
         if not encoded:
             raise BoraError("El BORA respondió sin contenido PDF")
         try:

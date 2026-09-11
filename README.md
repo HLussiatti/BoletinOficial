@@ -34,6 +34,11 @@ El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene l
 publicaciones seleccionadas o pendientes de revisión. La opción `--all` incorpora
 también los metadatos descartados y se reserva para controles de cobertura.
 
+Cada consulta HTTP tiene tres intentos como máximo, con una espera creciente entre
+ellos. Se pueden ajustar con `--max-attempts` y `--timeout`. La ejecución registra
+su actividad en `var\logs\epe-boletin.log`, además de conservar en SQLite el estado
+y el detalle de las fallas por fecha.
+
 Los estados distinguen una fecha cubierta, una edición todavía no publicada y una
 consulta fallida. Las publicaciones se deduplican por el identificador oficial del
 BORA. Los documentos pertinentes se validan como PDF, se escriben de forma atómica

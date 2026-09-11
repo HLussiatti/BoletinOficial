@@ -11,6 +11,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
 - modos diario, histórico y simulación, con rango de fechas;
 - base SQLite versionada con ejecuciones, cobertura, publicaciones y documentos;
 - bloqueo contra ejecuciones simultáneas;
+- reintentos HTTP acotados, con espera creciente, tiempo máximo configurable y
+  registro persistente de las fallas;
 - lectura de la Primera Sección por edición completa, incluida la paginación;
 - control de la cantidad anunciada por el índice antes de marcar la cobertura;
 - suplementos incorporados en el mismo índice, diferenciados por categoría, y
@@ -21,6 +23,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
 - descubrimiento, descarga y almacenamiento separado de anexos;
 - consulta de estado y exportación CSV;
 - pruebas locales sin red sobre la edición del 29/05/2025.
+- pruebas de edición ausente, respuestas HTTP transitorias, agotamiento de
+  reintentos y rechazo de PDF inválidos.
 
 La prueba de aceptación provisional procesó 90 publicaciones y una coincidencia
 sectorial. Dos ejecuciones consecutivas mantuvieron 90 registros, lo que verifica
@@ -37,8 +41,8 @@ detalle está en `VALIDACION_2026-09-11.md`.
 
 1. Guardar una muestra local de una fecha con suplemento para automatizar la prueba
    del contrato ya inspeccionado en el sitio oficial.
-2. Incorporar reintentos acotados y pruebas de fallas HTTP y PDF inválido.
-3. Separar considerandos y parte dispositiva conservando artículos y páginas.
+2. Separar considerandos y parte dispositiva conservando artículos y páginas.
+3. Hacer configurables las reglas de selección y registrar su versión.
 4. Ampliar las pruebas a varias fechas conocidas antes del histórico.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
