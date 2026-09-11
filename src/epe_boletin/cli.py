@@ -21,6 +21,7 @@ from .summaries import (
     ConceptualSummary,
     OpenAISummarizer,
 )
+from .settings import load_operation_settings, readiness_issues
 
 
 def configure_logging(data_dir: Path) -> Path:
@@ -119,6 +120,10 @@ def parser() -> argparse.ArgumentParser:
     )
     restore.add_argument("archive", type=Path)
     restore.add_argument("destination", type=Path)
+    check = commands.add_parser(
+        "check-config", help="Comprobar si la configuración operativa está completa"
+    )
+    check.add_argument("source", type=Path)
     export = commands.add_parser("export-csv", help="Exportar publicaciones para consulta")
     export.add_argument("destination", type=Path)
     export.add_argument("--all", action="store_true",
@@ -127,6 +132,9 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     args = parser().parse_args(argv)
     database = Database(args.data_dir / "boletin.sqlite3")
     if args.command == "init":
@@ -322,6 +330,16 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+    if args.command == "check-config":
+        try:
+            settings = load_operation_settings(args.source)
+            issues = readiness_issues(settings, os.environ)
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        print(json.dumps({"ready": not issues, "issues": issues},
+                         ensure_ascii=False, indent=2))
+        return 0 if not issues else 2
 
     today = date.today()
     if args.overlap_days < 1:

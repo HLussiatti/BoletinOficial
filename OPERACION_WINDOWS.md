@@ -83,3 +83,16 @@ $env:EPE_SMTP_PASSWORD = "..."
 
 Si la conexión se pierde mientras el servidor procesa el mensaje, el estado queda
 como `uncertain` y requiere conciliación antes de reintentar.
+
+## Diagnóstico de configuración
+
+Se copia `config\operation.example.json` a una ubicación operativa y se completan
+los valores institucionales. Las claves permanecen en las variables indicadas por
+`api_key_env` y `password_env`.
+
+```powershell
+.\epe-boletin.exe check-config C:\EPESF\Boletin\config\operation.json
+```
+
+La tarea programada sólo debe activarse cuando el diagnóstico informe
+`"ready": true` y se hayan realizado las pruebas controladas de resumen y correo.

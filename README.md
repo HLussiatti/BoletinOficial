@@ -86,6 +86,16 @@ y distingue un rechazo de un resultado incierto por pérdida de conexión durant
 envío. El comando `send-email` no se utiliza hasta definir el servidor, remitente y
 destinatarios institucionales.
 
+`config\operation.example.json` reúne las definiciones de producción sin incluir
+contraseñas. Se puede comprobar antes de activar la tarea diaria:
+
+```powershell
+.\.venv\Scripts\epe-boletin.exe check-config config\operation.example.json
+```
+
+El resultado enumera los campos y variables de entorno faltantes y devuelve código
+0 únicamente cuando la configuración está completa.
+
 La base, los documentos y las reglas pueden respaldarse de manera transaccional:
 
 ```powershell
