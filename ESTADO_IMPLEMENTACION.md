@@ -30,6 +30,9 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   registrado y credencial tomada del entorno;
 - generación de boletines `.eml` en modo simulación, con cuerpo de texto y HTML,
   PDF y anexos, y división automática por límite de tamaño;
+- registro idempotente de los correos preparados mediante `Message-ID`, vínculo con
+  las publicaciones y estados preparado, enviado, error o resultado incierto;
+- transporte SMTP configurable y probado mediante dobles locales, sin envíos reales;
 - recuperación diaria desde la última cobertura completa, con siete días de
   solapamiento configurables;
 - respaldo ZIP transaccional de SQLite, documentos y reglas, con manifiesto y
@@ -69,6 +72,8 @@ no aplicables.
 Los dos resúmenes conceptuales aprobados se importaron como revisión humana. Con
 ellos se generó un correo de simulación de 727.692 bytes que contiene las dos
 publicaciones y tres adjuntos. No se realizó ningún envío.
+El correo preparado quedó vinculado a ambas publicaciones en la base mediante el
+`Message-ID` `<epesf-20260911-1-9b41210fd84100b9@localhost>`.
 
 El respaldo de la validación contiene la base, los cinco PDF y la configuración de
 reglas. Se verificaron las siete huellas del manifiesto contra el contenido del ZIP.

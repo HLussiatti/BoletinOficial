@@ -72,7 +72,7 @@ class DocumentStructureTest(unittest.TestCase):
                     "SELECT structure_status FROM documents WHERE id=?",
                     (document_id,),
                 ).fetchone()["structure_status"]
-            self.assertEqual(5, version)
+            self.assertEqual(6, version)
             self.assertEqual("complete", status)
             self.assertEqual(3, len(stored))
             self.assertEqual("considerations", stored[0]["section_type"])

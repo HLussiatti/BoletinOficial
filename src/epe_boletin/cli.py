@@ -11,6 +11,7 @@ from pathlib import Path
 from .bora import BoraClient
 from .backup import create_backup, restore_backup
 from .db import Database
+from .delivery import DeliveryError, SmtpSettings, send_eml
 from .documents import extract_pdf
 from .mail import build_email_batches
 from .pipeline import run
@@ -98,6 +99,17 @@ def parser() -> argparse.ArgumentParser:
     email.add_argument("--from", dest="sender", default="boletin-epesf@localhost")
     email.add_argument("--to", dest="recipients", action="append", default=[])
     email.add_argument("--max-mb", type=float, default=20)
+    send = commands.add_parser(
+        "send-email", help="Enviar un .eml preparado mediante SMTP"
+    )
+    send.add_argument("path", type=Path)
+    send.add_argument("--host", required=True)
+    send.add_argument("--port", type=int, default=587)
+    send.add_argument("--username", default="")
+    send.add_argument("--password-env", default="EPE_SMTP_PASSWORD")
+    security = send.add_mutually_exclusive_group()
+    security.add_argument("--ssl", action="store_true")
+    security.add_argument("--no-starttls", action="store_true")
     backup = commands.add_parser(
         "backup", help="Respaldar la base, documentos y reglas en un ZIP"
     )
@@ -255,11 +267,43 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError) as exc:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
+        for index, artifact in enumerate(artifacts, 1):
+            database.record_prepared_delivery(
+                args.date, artifact, tuple(args.recipients), index, len(artifacts)
+            )
         print(json.dumps({"emails": [
             {"path": str(item.path), "publications": item.item_count,
-             "attachments": item.attachment_count, "bytes": item.byte_size}
+             "attachments": item.attachment_count, "bytes": item.byte_size,
+             "message_id": item.message_id}
             for item in artifacts
         ]}, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "send-email":
+        database.migrate()
+        password = os.environ.get(args.password_env, "")
+        settings = SmtpSettings(
+            host=args.host, port=args.port, username=args.username,
+            password=password, starttls=not args.no_starttls and not args.ssl,
+            ssl=args.ssl,
+        )
+        try:
+            message_id = send_eml(args.path, settings)
+            database.update_delivery(message_id, "sent")
+        except DeliveryError as exc:
+            try:
+                from email import policy
+                from email.parser import BytesParser
+                parsed = BytesParser(policy=policy.default).parsebytes(
+                    args.path.read_bytes()
+                )
+                message_id = str(parsed.get("Message-ID", ""))
+                if message_id:
+                    database.update_delivery(message_id, exc.status, str(exc))
+            except (OSError, ValueError):
+                pass
+            print(f"Error: {exc}", file=sys.stderr)
+            return 2 if exc.status == "uncertain" else 1
+        print(json.dumps({"message_id": message_id, "status": "sent"}, indent=2))
         return 0
     if args.command == "backup":
         database.migrate()

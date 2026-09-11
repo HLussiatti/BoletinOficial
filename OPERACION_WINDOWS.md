@@ -63,3 +63,23 @@ el manifiesto, las huellas, la integridad de SQLite y sus claves foráneas:
 
 Después de comprobar el resultado, la tarea programada puede apuntarse a la carpeta
 restaurada. El comando no reemplaza automáticamente una base operativa existente.
+
+## Correo institucional
+
+En este equipo se detectaron Mozilla Thunderbird 115.12.2 como cliente
+predeterminado, con cuenta POP3, y Microsoft Outlook instalado. La entrega se
+preparó mediante SMTP para no depender de que alguno de los dos clientes esté
+abierto. Antes de activarla deben confirmarse servidor, puerto, cifrado, usuario,
+remitente, destinatarios y si la organización permite el envío SMTP desatendido.
+
+La contraseña se carga en el entorno y no se escribe en archivos:
+
+```powershell
+$env:EPE_SMTP_PASSWORD = "..."
+.\epe-boletin.exe --data-dir C:\EPESF\Boletin\datos send-email `
+  C:\EPESF\Boletin\datos\outbox\boletin.eml `
+  --host smtp.institucion.example --port 587 --username usuario
+```
+
+Si la conexión se pierde mientras el servidor procesa el mensaje, el estado queda
+como `uncertain` y requiere conciliación antes de reintentar.

@@ -80,6 +80,12 @@ $env:EPE_OPENAI_MODEL = "modelo-habilitado-en-la-cuenta"
 y divide el boletín en varios `.eml` cuando el límite configurado con `--max-mb`
 no permite enviarlo como una sola pieza.
 
+Cada correo recibe un `Message-ID` estable y queda registrado como `prepared`. El
+transporte SMTP admite SSL o STARTTLS, toma la contraseña de una variable de entorno
+y distingue un rechazo de un resultado incierto por pérdida de conexión durante el
+envío. El comando `send-email` no se utiliza hasta definir el servidor, remitente y
+destinatarios institucionales.
+
 La base, los documentos y las reglas pueden respaldarse de manera transaccional:
 
 ```powershell

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
@@ -8,11 +9,11 @@ from pathlib import Path
 from typing import Iterator
 
 from .documents import DocumentSection
-from .mail import BulletinItem
+from .mail import BulletinItem, EmailArtifact
 from .models import Publication
 from .summaries import ConceptualSummary, SummaryCandidate, source_digest
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 def utc_now() -> str:
@@ -149,6 +150,25 @@ class Database:
                 );
                 CREATE INDEX IF NOT EXISTS ix_summaries_publication
                     ON summaries(publication_id,created_at);
+                CREATE TABLE IF NOT EXISTS deliveries (
+                    id INTEGER PRIMARY KEY,
+                    message_id TEXT NOT NULL UNIQUE,
+                    publication_date TEXT NOT NULL,
+                    batch_number INTEGER NOT NULL,
+                    total_batches INTEGER NOT NULL,
+                    path TEXT NOT NULL,
+                    recipients_json TEXT NOT NULL,
+                    status TEXT NOT NULL
+                        CHECK(status IN ('prepared','sent','error','uncertain')),
+                    created_at TEXT NOT NULL,
+                    sent_at TEXT,
+                    error TEXT
+                );
+                CREATE TABLE IF NOT EXISTS delivery_publications (
+                    delivery_id INTEGER NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+                    publication_id INTEGER NOT NULL REFERENCES publications(id),
+                    PRIMARY KEY(delivery_id,publication_id)
+                );
             """)
             row = connection.execute("SELECT version FROM schema_info").fetchone()
             if row is None:
@@ -204,6 +224,9 @@ class Database:
                 connection.execute("UPDATE schema_info SET version=4")
                 current_version = 4
             if current_version == 4:
+                connection.execute("UPDATE schema_info SET version=5")
+                current_version = 5
+            if current_version == 5:
                 connection.execute("UPDATE schema_info SET version=?", (SCHEMA_VERSION,))
 
     def start_run(self, mode: str, date_from: date, date_to: date) -> int:
@@ -553,6 +576,58 @@ class Database:
                 ))
             return results
 
+    def record_prepared_delivery(self, day: date, artifact: EmailArtifact,
+                                 recipients: tuple[str, ...], batch_number: int,
+                                 total_batches: int) -> None:
+        with self.connect() as connection:
+            connection.execute("""
+                INSERT INTO deliveries(
+                    message_id,publication_date,batch_number,total_batches,path,
+                    recipients_json,status,created_at,sent_at,error
+                ) VALUES(?,?,?,?,?,?,'prepared',?,NULL,NULL)
+                ON CONFLICT(message_id) DO UPDATE SET path=excluded.path,
+                    recipients_json=excluded.recipients_json,status='prepared',
+                    created_at=excluded.created_at,sent_at=NULL,error=NULL
+            """, (
+                artifact.message_id, day.isoformat(), batch_number, total_batches,
+                str(artifact.path), json.dumps(recipients), utc_now(),
+            ))
+            delivery_id = int(connection.execute(
+                "SELECT id FROM deliveries WHERE message_id=?",
+                (artifact.message_id,),
+            ).fetchone()["id"])
+            connection.execute(
+                "DELETE FROM delivery_publications WHERE delivery_id=?",
+                (delivery_id,),
+            )
+            for source_id in artifact.source_ids:
+                publication = connection.execute("""
+                    SELECT id FROM publications WHERE source='BORA' AND source_id=?
+                """, (source_id,)).fetchone()
+                if publication:
+                    connection.execute("""
+                        INSERT INTO delivery_publications(delivery_id,publication_id)
+                        VALUES(?,?)
+                    """, (delivery_id, publication["id"]))
+
+    def update_delivery(self, message_id: str, status: str,
+                        error: str | None = None) -> None:
+        sent_at = utc_now() if status == "sent" else None
+        with self.connect() as connection:
+            cursor = connection.execute("""
+                UPDATE deliveries SET status=?,sent_at=?,error=? WHERE message_id=?
+            """, (status, sent_at, error, message_id))
+            if cursor.rowcount != 1:
+                raise ValueError(f"No existe la entrega {message_id}")
+            if status == "sent":
+                connection.execute("""
+                    UPDATE publications SET delivery_status='sent'
+                    WHERE id IN (
+                        SELECT publication_id FROM delivery_publications
+                        WHERE delivery_id=(SELECT id FROM deliveries WHERE message_id=?)
+                    )
+                """, (message_id,))
+
     def status(self) -> dict[str, object]:
         with self.connect() as connection:
             last_run = connection.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 1").fetchone()
@@ -573,13 +648,19 @@ class Database:
                 SELECT SUM(status='complete') ready,SUM(status='error') errors
                 FROM summaries
             """).fetchone()
+            delivery_counts = connection.execute("""
+                SELECT SUM(status='prepared') prepared,SUM(status='sent') sent,
+                       SUM(status='error') errors,SUM(status='uncertain') uncertain
+                FROM deliveries
+            """).fetchone()
             pending = connection.execute(
                 "SELECT COUNT(*) count FROM coverage WHERE status='failed'"
             ).fetchone()["count"]
             return {"last_run": dict(last_run) if last_run else None,
                     "publications": dict(counts),
                     "documents": dict(document_counts),
-                    "summaries": dict(summary_counts), "failed_dates": pending}
+                    "summaries": dict(summary_counts),
+                    "deliveries": dict(delivery_counts), "failed_dates": pending}
 
     def export_csv(self, destination: Path, include_all: bool = False) -> int:
         destination.parent.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import hashlib
 from dataclasses import dataclass
 from datetime import date
 from email.message import EmailMessage
@@ -26,6 +27,8 @@ class EmailArtifact:
     item_count: int
     attachment_count: int
     byte_size: int
+    message_id: str
+    source_ids: tuple[str, ...]
 
 
 def _message(items: list[BulletinItem], day: date, sender: str,
@@ -36,6 +39,12 @@ def _message(items: list[BulletinItem], day: date, sender: str,
         f"EPESF | Novedades normativas nacionales | {day:%d/%m/%Y}{suffix}"
     )
     message["From"] = sender
+    fingerprint = hashlib.sha256("|".join(
+        f"{item.source_id}:{item.conceptual_summary}:{item.epesf_relationship}"
+        for item in items
+    ).encode("utf-8")).hexdigest()[:16]
+    domain = sender.rsplit("@", 1)[-1] if "@" in sender else "localhost"
+    message["Message-ID"] = f"<epesf-{day:%Y%m%d}-{batch}-{fingerprint}@{domain}>"
     if recipients:
         message["To"] = ", ".join(recipients)
 
@@ -115,5 +124,7 @@ def build_email_batches(items: list[BulletinItem], day: date, output: Path,
             path=path, item_count=len(batch_items),
             attachment_count=sum(len(item.documents) for item in batch_items),
             byte_size=len(content),
+            message_id=str(message["Message-ID"]),
+            source_ids=tuple(item.source_id for item in batch_items),
         ))
     return artifacts
