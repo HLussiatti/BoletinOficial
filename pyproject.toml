@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epe-boletin-oficial"
+version = "0.1.0"
+description = "Seguimiento de normativa eléctrica nacional relevante para EPESF"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12,<5",
+  "requests>=2.31,<3",
+]
+
+[project.scripts]
+epe-boletin = "epe_boletin.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

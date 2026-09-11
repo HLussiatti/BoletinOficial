@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+import os
+from contextlib import contextmanager
+from datetime import date, timedelta
+from pathlib import Path
+from typing import Iterator
+
+from .bora import BoraClient, BoraError, EditionNotPublished
+from .db import Database
+
+RELEVANT = {"direct_epesf", "potential_sector_impact"}
+
+
+@contextmanager
+def execution_lock(path: Path) -> Iterator[None]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise RuntimeError(f"Ya existe una ejecución en curso ({path})") from exc
+    try:
+        os.write(descriptor, str(os.getpid()).encode("ascii"))
+        os.close(descriptor)
+        yield
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def days_between(start: date, end: date) -> Iterator[date]:
+    current = start
+    while current <= end:
+        yield current
+        current += timedelta(days=1)
+
+
+def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
+        date_from: date, date_to: date, download: bool = True,
+        fixture_dir: Path | None = None) -> dict[str, int | str]:
+    db.migrate()
+    run_id = db.start_run(mode, date_from, date_to)
+    seen = relevant = failed = not_published = downloaded = 0
+    errors: list[str] = []
+    try:
+        with execution_lock(data_dir / "run.lock"):
+            for day in days_between(date_from, date_to):
+                fixture = None
+                if fixture_dir:
+                    candidate = fixture_dir / f"primera_{day:%Y%m%d}.html"
+                    fixture = candidate if candidate.exists() else None
+                    if fixture is None:
+                        message = f"{day}: falta la muestra local {candidate}"
+                        db.save_coverage(day, "failed", error=message)
+                        errors.append(message)
+                        failed += 1
+                        continue
+                try:
+                    edition = client.fetch_edition(day, fixture)
+                    requests = tuple(
+                        (item, item.relevance in RELEVANT)
+                        for item in edition.publications
+                    )
+                    publication_ids = db.upsert_publications(requests)
+                    for item in edition.publications:
+                        request_document = item.relevance in RELEVANT
+                        publication_id = publication_ids[item.source_id]
+                        seen += 1
+                        if request_document:
+                            relevant += 1
+                            if download and not fixture_dir:
+                                try:
+                                    path, digest, size = client.download_pdf(
+                                        item, data_dir / "documents" / f"{day:%Y}" / f"{day:%m}")
+                                    db.save_document(publication_id, path, digest, size,
+                                                     item.detail_url)
+                                    downloaded += 1
+                                except Exception as exc:
+                                    db.mark_document_error(publication_id)
+                                    errors.append(f"{day}: PDF {item.source_id}: {exc}")
+                    db.save_coverage(day, "complete", edition.pages_fetched,
+                                     len(edition.publications), edition.has_supplement)
+                except EditionNotPublished:
+                    db.save_coverage(day, "not_published")
+                    not_published += 1
+                except Exception as exc:
+                    failed += 1
+                    message = f"{day}: {exc}"
+                    errors.append(message)
+                    db.save_coverage(day, "failed", error=str(exc))
+        status = "complete" if not failed else "partial"
+        db.finish_run(run_id, status, seen, relevant, "\n".join(errors) or None)
+    except Exception as exc:
+        db.finish_run(run_id, "failed", seen, relevant, str(exc))
+        raise
+    return {"run_id": run_id, "status": status, "seen": seen,
+            "relevant": relevant, "downloaded": downloaded,
+            "not_published": not_published, "failed": failed}
