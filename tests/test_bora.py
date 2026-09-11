@@ -6,7 +6,12 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from epe_boletin.bora import BoraClient, parse_expected_count, parse_publications
+from epe_boletin.bora import (
+    BoraClient,
+    document_stem,
+    parse_expected_count,
+    parse_publications,
+)
 from epe_boletin.db import Database
 from epe_boletin.models import Publication
 from epe_boletin.pipeline import run
@@ -44,6 +49,10 @@ class BoraParserTest(unittest.TestCase):
                 ).fetchone()
             self.assertEqual(90, total)
             self.assertEqual(("complete", 90), tuple(coverage))
+            selected = data / "selected.csv"
+            audit = data / "audit.csv"
+            self.assertEqual(1, database.export_csv(selected))
+            self.assertEqual(90, database.export_csv(audit, include_all=True))
 
     def test_pdf_download_is_validated_and_named_safely(self):
         class Response:
@@ -64,7 +73,7 @@ class BoraParserTest(unittest.TestCase):
         item = parse_publications(SAMPLE.read_text(encoding="utf-8"), date(2025, 5, 29))[0]
         with tempfile.TemporaryDirectory() as folder:
             path, digest, size = BoraClient(Session()).download_pdf(item, Path(folder))
-            self.assertTrue(path.name.startswith("NACION_Decreto_366_2025_BORA_326096"))
+            self.assertEqual("2025_05_29_Decreto_366.pdf", path.name)
             self.assertEqual(64, len(digest))
             self.assertEqual(size, path.stat().st_size)
             self.assertFalse(path.with_suffix(".pdf.part").exists())
@@ -125,6 +134,27 @@ class BoraParserTest(unittest.TestCase):
         self.assertEqual(1, len(annexes))
         self.assertEqual("annex:1:7768089", annexes[0].kind)
         self.assertEqual("/pdf/download_anexo", annexes[0].endpoint)
+
+    def test_document_name_preserves_accents(self):
+        item = Publication(
+            source_id="347303", publication_date=date(2026, 9, 11), section="primera",
+            category="RESOLUCIONES", agency="SECRETARÍA DE ENERGÍA",
+            title="Resolución 238/2026", reference="RESOL-2026-238",
+            description="", detail_url="https://example.test/347303",
+        )
+        self.assertEqual("2026_09_11_Resolución_238", document_stem(item))
+
+    def test_non_local_electric_notice_is_discarded_after_reading(self):
+        item = Publication(
+            source_id="347338", publication_date=date(2026, 9, 11), section="primera",
+            category="AVISOS OFICIALES", agency="SUBSECRETARÍA DE ENERGÍA ELÉCTRICA",
+            title="Aviso Oficial", reference="", description="",
+            detail_url="https://example.test/347338",
+        )
+        relevance, _ = classify(
+            item, "Una generadora de Neuquén solicita una autorización en el MEM."
+        )
+        self.assertEqual("not_relevant", relevance)
 
 
 if __name__ == "__main__":

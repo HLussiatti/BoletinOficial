@@ -30,6 +30,10 @@ si no se especifica un período. Los resultados se consultan y exportan con:
 .\.venv\Scripts\epe-boletin.exe --data-dir var export-csv var\publicaciones.csv
 ```
 
+El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene las
+publicaciones seleccionadas o pendientes de revisión. La opción `--all` incorpora
+también los metadatos descartados y se reserva para controles de cobertura.
+
 Los estados distinguen una fecha cubierta, una edición todavía no publicada y una
 consulta fallida. Las publicaciones se deduplican por el identificador oficial del
 BORA. Los documentos pertinentes se validan como PDF, se escriben de forma atómica

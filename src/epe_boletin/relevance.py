@@ -46,6 +46,13 @@ def classify(publication: Publication, full_text: str = "") -> tuple[str, str]:
     if direct:
         return "direct_epesf", f"Mención directa: {', '.join(direct)}"
 
+    category = normalize(publication.category)
+    if full_text and category.startswith("avisos oficiales") and "santa fe" not in text:
+        return (
+            "not_relevant",
+            "Aviso sobre un caso particular sin vínculo identificado con EPESF o Santa Fe",
+        )
+
     strong = [term for term in STRONG_SECTOR_TERMS if term in text]
     electric = [term for term in ELECTRIC_TERMS if term in text]
     activity = [term for term in ACTIVITY_TERMS if term in text]

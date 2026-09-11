@@ -6,7 +6,7 @@ simulación y con una base separada en `var/validation-20260911`.
 ## Resultado técnico
 
 - 91 publicaciones recuperadas y cobertura marcada como completa.
-- 4 publicaciones clasificadas con impacto sectorial potencial.
+- 2 resoluciones clasificadas con impacto sectorial potencial.
 - 4 documentos principales y 1 anexo descargados y extraídos completamente.
 - 0 errores de consulta, descarga o extracción.
 - La cuarta ejecución recuperó los mismos 91 registros y descargó 0 archivos, con
@@ -15,7 +15,9 @@ simulación y con una base separada en `var/validation-20260911`.
 
 La clasificación inicial encontró un falso positivo por la palabra `transporte` en
 un aviso de la Secretaría de Transporte. La regla fue corregida: los términos de
-actividad sólo califican cuando también hay una señal eléctrica o energética.
+actividad sólo califican cuando también hay una señal eléctrica o energética. Los
+avisos eléctricos sobre casos particulares sin vínculo con EPESF o Santa Fe se
+descargan como candidatos para analizar su texto, pero luego quedan descartados.
 
 ## Publicaciones detectadas
 
@@ -43,16 +45,30 @@ Entra en vigencia el día de su publicación.
 Relación potencial con EPESF: es una decisión sectorial sobre otra empresa
 provincial y no contiene una obligación directa para EPESF.
 
-### Aviso oficial BORA 347338
+### Aviso oficial BORA 347338 - descartado
 
 Comunica la solicitud de YPF Energía Eléctrica S.A. para desafectar la Central
 Térmica Loma Campana I como nodo de generación de su autogenerador distribuido y
 autorizarla posteriormente como Agente Generador del MEM, manteniendo la vinculación
 al SADI. Establece diez días corridos para objeciones u oposiciones.
 
-### Aviso oficial BORA 347339
+Se descartó porque se refiere a un generador y una central sin ubicación ni vínculo
+identificado con Santa Fe o EPESF.
+
+### Aviso oficial BORA 347339 - descartado
 
 Comunica cambios de titularidad y solicitudes de habilitación en el MEM: INTERPACK
 S.A. como GUME en reemplazo de Kimberly Clark Argentina S.A., con EDENOR como
 distribuidor/PAFTT; y SANSIS S.A. como GUMA en reemplazo de Fibercord S.A., con
 EDESUR. Establece diez días corridos para objeciones u oposiciones.
+
+Se descartó porque las instalaciones y los distribuidores involucrados pertenecen
+a las áreas de EDENOR y EDESUR y no se identificó relación con EPESF.
+
+## Exportación
+
+La aplicación conserva en SQLite los metadatos mínimos de las 91 publicaciones
+para acreditar cobertura y evitar reprocesamientos. No genera un CSV de forma
+automática. La exportación normal de esta validación contiene únicamente las
+Resoluciones 238/2026 y 239/2026; la exportación completa queda disponible sólo con
+la opción explícita `--all` para controles de auditoría.

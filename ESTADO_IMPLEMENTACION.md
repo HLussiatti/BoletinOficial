@@ -27,8 +27,10 @@ sectorial. Dos ejecuciones consecutivas mantuvieron 90 registros, lo que verific
 la deduplicación por identificador oficial para esa muestra.
 
 El 11 de septiembre de 2026 se realizó además una validación real de la edición del
-día. Se registraron 91 publicaciones, cuatro casos sectoriales, cuatro documentos
-principales y un anexo. Una cuarta ejecución no volvió a descargar archivos. El
+día. Se registraron 91 publicaciones, se descargaron cuatro candidatos sectoriales
+y un anexo para evaluar el texto completo, y quedaron seleccionadas las
+Resoluciones 238/2026 y 239/2026. Los dos avisos fueron descartados con la regla de
+negocio ajustada. Una ejecución posterior no volvió a descargar archivos. El
 detalle está en `VALIDACION_2026-09-11.md`.
 
 ## Próximo trabajo

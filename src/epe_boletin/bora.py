@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import re
+import unicodedata
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -84,6 +85,24 @@ def parse_expected_count(html: str) -> int | None:
         if match:
             counts.append(int(match.group(1)))
     return sum(counts) if counts else None
+
+
+def _safe_component(value: str) -> str:
+    value = unicodedata.normalize("NFC", value).strip()
+    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", value)
+    value = re.sub(r"\s+", "_", value)
+    return value.strip("._")
+
+
+def document_stem(publication: Publication) -> str:
+    match = re.fullmatch(r"(?P<type>.+?)\s+(?P<number>\d+)(?:/\d{4})?", publication.title)
+    if match:
+        document_type = _safe_component(match.group("type"))
+        number = match.group("number")
+    else:
+        document_type = _safe_component(publication.title) or "Documento"
+        number = publication.source_id
+    return f"{publication.publication_date:%Y_%m_%d}_{document_type}_{number}"
 
 
 class BoraClient:
@@ -168,8 +187,7 @@ class BoraClient:
         response.raise_for_status()
         content = self._decode_pdf(response)
         output_dir.mkdir(parents=True, exist_ok=True)
-        safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", publication.title).strip("_.")[:80]
-        name = f"NACION_{safe_title or 'Aviso'}_BORA_{publication.source_id}_{match.group('date')}.pdf"
+        name = document_stem(publication) + ".pdf"
         return self._store_pdf(content, output_dir / name)
 
     def fetch_annexes(self, publication: Publication) -> tuple[Annex, ...]:
@@ -201,10 +219,7 @@ class BoraClient:
         response.raise_for_status()
         content = self._decode_pdf(response)
         output_dir.mkdir(parents=True, exist_ok=True)
-        name = (
-            f"NACION_Anexo_{annex.number}_BORA_{publication.source_id}_"
-            f"{annex.source_id}_{annex.publication_date:%Y%m%d}.pdf"
-        )
+        name = f"{document_stem(publication)}_Anexo_{_safe_component(annex.number)}.pdf"
         return self._store_pdf(content, output_dir / name)
 
     @staticmethod

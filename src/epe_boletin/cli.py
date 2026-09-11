@@ -35,6 +35,8 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser("status", help="Mostrar el último estado operativo")
     export = commands.add_parser("export-csv", help="Exportar publicaciones para consulta")
     export.add_argument("destination", type=Path)
+    export.add_argument("--all", action="store_true",
+                        help="Incluir también las publicaciones descartadas")
     return result
 
 
@@ -51,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "export-csv":
         database.migrate()
-        count = database.export_csv(args.destination)
+        count = database.export_csv(args.destination, include_all=args.all)
         print(f"Exportados {count} registros a {args.destination}")
         return 0
 

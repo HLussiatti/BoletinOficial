@@ -273,13 +273,14 @@ class Database:
             return {"last_run": dict(last_run) if last_run else None,
                     "publications": dict(counts), "failed_dates": pending}
 
-    def export_csv(self, destination: Path) -> int:
+    def export_csv(self, destination: Path, include_all: bool = False) -> int:
         destination.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
-            rows = connection.execute("""
+            where = "" if include_all else "WHERE relevance != 'not_relevant'"
+            rows = connection.execute(f"""
                 SELECT publication_date,category,agency,title,reference,relevance,
                        relevance_reason,document_status,summary_status,detail_url
-                FROM publications ORDER BY publication_date,agency,title
+                FROM publications {where} ORDER BY publication_date,agency,title
             """).fetchall()
         fields = list(rows[0].keys()) if rows else [
             "publication_date", "category", "agency", "title", "reference",
