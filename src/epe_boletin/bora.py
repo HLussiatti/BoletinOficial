@@ -12,7 +12,7 @@ from urllib.parse import quote, urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from .models import Edition, Publication
+from .models import Annex, Edition, Publication
 from .relevance import classify
 
 BASE_URL = "https://www.boletinoficial.gob.ar"
@@ -23,6 +23,11 @@ MORE_RE = re.compile(r"hayMasResultadosSeccion\s*=\s*(true|false)")
 PAGE_RE = re.compile(r"var numeroPagina\s*=\s*(\d+)")
 LAST_CATEGORY_RE = re.compile(r"var ultimoRubro\s*=\s*'([^']*)'")
 COUNT_RE = re.compile(r"\((\d+)\)\s*$")
+ANNEX_RE = re.compile(
+    r"descargarPDFAnexo\(\s*['\"](?P<section>[^'\"]+)['\"]\s*,\s*"
+    r"['\"](?P<number>[^'\"]+)['\"]\s*,\s*['\"](?P<id>[^'\"]+)['\"]\s*,\s*"
+    r"['\"](?P<date>\d{8})['\"]\s*,\s*['\"](?P<endpoint>[^'\"]+)['\"]"
+)
 
 
 class BoraError(RuntimeError):
@@ -161,6 +166,49 @@ class BoraClient:
         }, headers={"Referer": publication.detail_url,
                     "X-Requested-With": "XMLHttpRequest"}, timeout=self.timeout)
         response.raise_for_status()
+        content = self._decode_pdf(response)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", publication.title).strip("_.")[:80]
+        name = f"NACION_{safe_title or 'Aviso'}_BORA_{publication.source_id}_{match.group('date')}.pdf"
+        return self._store_pdf(content, output_dir / name)
+
+    def fetch_annexes(self, publication: Publication) -> tuple[Annex, ...]:
+        html, _ = self._get_text(publication.detail_url + "?anexos=1")
+        soup = BeautifulSoup(html, "html.parser")
+        annexes: list[Annex] = []
+        for node in soup.select('[onclick*="descargarPDFAnexo"]'):
+            match = ANNEX_RE.search(node.get("onclick", ""))
+            if not match:
+                continue
+            annexes.append(Annex(
+                number=match.group("number"), source_id=match.group("id"),
+                publication_date=publication.publication_date,
+                section=match.group("section"), endpoint=match.group("endpoint"),
+            ))
+        if publication.has_annexes and not annexes:
+            raise BoraError("El aviso indica anexos pero no se pudieron identificar")
+        return tuple(annexes)
+
+    def download_annex(self, publication: Publication, annex: Annex,
+                       output_dir: Path) -> tuple[Path, str, int]:
+        response = self.session.post(urljoin(BASE_URL, annex.endpoint), data={
+            "seccion": annex.section,
+            "nroAnexo": annex.number,
+            "idAnexo": annex.source_id,
+            "fechaPublicacion": annex.publication_date.strftime("%Y%m%d"),
+        }, headers={"Referer": publication.detail_url,
+                    "X-Requested-With": "XMLHttpRequest"}, timeout=self.timeout)
+        response.raise_for_status()
+        content = self._decode_pdf(response)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        name = (
+            f"NACION_Anexo_{annex.number}_BORA_{publication.source_id}_"
+            f"{annex.source_id}_{annex.publication_date:%Y%m%d}.pdf"
+        )
+        return self._store_pdf(content, output_dir / name)
+
+    @staticmethod
+    def _decode_pdf(response) -> bytes:
         encoded = response.json().get("pdfBase64")
         if not encoded:
             raise BoraError("El BORA respondió sin contenido PDF")
@@ -170,10 +218,10 @@ class BoraClient:
             raise BoraError("El BORA respondió un PDF Base64 inválido") from exc
         if not content.startswith(b"%PDF-") or b"%%EOF" not in content[-2048:]:
             raise BoraError("El documento descargado no es un PDF íntegro")
-        output_dir.mkdir(parents=True, exist_ok=True)
-        safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", publication.title).strip("_.")[:80]
-        name = f"NACION_{safe_title or 'Aviso'}_BORA_{publication.source_id}_{match.group('date')}.pdf"
-        destination = output_dir / name
+        return content
+
+    @staticmethod
+    def _store_pdf(content: bytes, destination: Path) -> tuple[Path, str, int]:
         temporary = destination.with_suffix(".pdf.part")
         temporary.write_bytes(content)
         temporary.replace(destination)

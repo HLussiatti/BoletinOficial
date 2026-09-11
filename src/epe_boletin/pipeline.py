@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from contextlib import contextmanager
 from datetime import date, timedelta
 from pathlib import Path
@@ -8,8 +9,11 @@ from typing import Iterator
 
 from .bora import BoraClient, BoraError, EditionNotPublished
 from .db import Database
+from .documents import extract_pdf
+from .relevance import classify
 
 RELEVANT = {"direct_epesf", "potential_sector_impact"}
+REQUIRES_DOCUMENT = RELEVANT | {"needs_review"}
 
 
 @contextmanager
@@ -57,26 +61,68 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                 try:
                     edition = client.fetch_edition(day, fixture)
                     requests = tuple(
-                        (item, item.relevance in RELEVANT)
+                        (item, item.relevance in REQUIRES_DOCUMENT)
                         for item in edition.publications
                     )
                     publication_ids = db.upsert_publications(requests)
                     for item in edition.publications:
-                        request_document = item.relevance in RELEVANT
+                        request_document = item.relevance in REQUIRES_DOCUMENT
                         publication_id = publication_ids[item.source_id]
                         seen += 1
                         if request_document:
-                            relevant += 1
-                            if download and not fixture_dir:
+                            full_text = db.document_text(publication_id)
+                            if download and not fixture_dir and full_text is None:
                                 try:
                                     path, digest, size = client.download_pdf(
                                         item, data_dir / "documents" / f"{day:%Y}" / f"{day:%m}")
-                                    db.save_document(publication_id, path, digest, size,
-                                                     item.detail_url)
+                                    extraction = extract_pdf(path)
+                                    full_text = extraction.text
+                                    db.save_document(
+                                        publication_id, path, digest, size, item.detail_url,
+                                        extraction.text, extraction.page_count,
+                                        extraction.status, extraction.error,
+                                    )
                                     downloaded += 1
                                 except Exception as exc:
                                     db.mark_document_error(publication_id)
                                     errors.append(f"{day}: PDF {item.source_id}: {exc}")
+                                    failed += 1
+                            annex_texts: list[str] = []
+                            if download and not fixture_dir and item.has_annexes:
+                                try:
+                                    for annex in client.fetch_annexes(item):
+                                        annex_text = db.document_text(publication_id, annex.kind)
+                                        if annex_text is None:
+                                            path, digest, size = client.download_annex(
+                                                item, annex,
+                                                data_dir / "documents" / f"{day:%Y}" / f"{day:%m}",
+                                            )
+                                            extraction = extract_pdf(path)
+                                            annex_text = extraction.text
+                                            db.save_document(
+                                                publication_id, path, digest, size,
+                                                item.detail_url + "?anexos=1",
+                                                extraction.text, extraction.page_count,
+                                                extraction.status, extraction.error,
+                                                kind=annex.kind,
+                                            )
+                                            downloaded += 1
+                                        annex_texts.append(annex_text)
+                                except Exception as exc:
+                                    errors.append(f"{day}: anexos {item.source_id}: {exc}")
+                                    failed += 1
+                            if full_text is not None:
+                                combined_text = "\n\n".join([full_text, *annex_texts])
+                                final_relevance, reason = classify(item, combined_text)
+                                item = replace(
+                                    item, relevance=final_relevance,
+                                    relevance_reason=reason,
+                                )
+                                db.update_classification(
+                                    publication_id, final_relevance, reason, "full_text"
+                                )
+                        if item.relevance in RELEVANT:
+                            relevant += 1
                     db.save_coverage(day, "complete", edition.pages_fetched,
                                      len(edition.publications), edition.has_supplement)
                 except EditionNotPublished:

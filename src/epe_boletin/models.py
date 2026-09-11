@@ -26,3 +26,16 @@ class Edition:
     publications: tuple[Publication, ...]
     has_supplement: bool
     pages_fetched: int
+
+
+@dataclass(frozen=True, slots=True)
+class Annex:
+    number: str
+    source_id: str
+    publication_date: date
+    section: str
+    endpoint: str
+
+    @property
+    def kind(self) -> str:
+        return f"annex:{self.number}:{self.source_id}"

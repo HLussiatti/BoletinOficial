@@ -9,6 +9,7 @@ description = "Seguimiento de normativa eléctrica nacional relevante para EPESF
 requires-python = ">=3.11"
 dependencies = [
   "beautifulsoup4>=4.12,<5",
+  "pypdf>=6,<7",
   "requests>=2.31,<3",
 ]
 

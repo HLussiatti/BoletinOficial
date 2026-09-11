@@ -9,7 +9,7 @@ from typing import Iterator
 
 from .models import Publication
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def utc_now() -> str:
@@ -102,12 +102,34 @@ class Database:
                     byte_size INTEGER NOT NULL,
                     downloaded_at TEXT NOT NULL,
                     source_url TEXT NOT NULL,
+                    extracted_text TEXT NOT NULL DEFAULT '',
+                    page_count INTEGER,
+                    extraction_status TEXT NOT NULL DEFAULT 'pending'
+                        CHECK(extraction_status IN ('pending','complete','insufficient','error')),
+                    extraction_error TEXT,
                     UNIQUE(publication_id, kind, sha256)
                 );
             """)
             row = connection.execute("SELECT version FROM schema_info").fetchone()
             if row is None:
                 connection.execute("INSERT INTO schema_info(version) VALUES (?)", (SCHEMA_VERSION,))
+            elif row["version"] == 1:
+                columns = {
+                    column["name"]
+                    for column in connection.execute("PRAGMA table_info(documents)")
+                }
+                additions = {
+                    "extracted_text": "TEXT NOT NULL DEFAULT ''",
+                    "page_count": "INTEGER",
+                    "extraction_status": "TEXT NOT NULL DEFAULT 'pending'",
+                    "extraction_error": "TEXT",
+                }
+                for name, declaration in additions.items():
+                    if name not in columns:
+                        connection.execute(
+                            f"ALTER TABLE documents ADD COLUMN {name} {declaration}"
+                        )
+                connection.execute("UPDATE schema_info SET version=?", (SCHEMA_VERSION,))
             elif row["version"] != SCHEMA_VERSION:
                 raise RuntimeError(f"Versión de base no soportada: {row['version']}")
 
@@ -185,16 +207,48 @@ class Database:
             return {str(row["source_id"]): int(row["id"]) for row in rows}
 
     def save_document(self, publication_id: int, path: Path, sha256: str,
-                      byte_size: int, source_url: str, kind: str = "main") -> None:
+                      byte_size: int, source_url: str, extracted_text: str = "",
+                      page_count: int | None = None,
+                      extraction_status: str = "pending",
+                      extraction_error: str | None = None,
+                      kind: str = "main") -> None:
         with self.connect() as connection:
             connection.execute("""
-                INSERT OR IGNORE INTO documents(publication_id,kind,path,sha256,
-                    byte_size,downloaded_at,source_url) VALUES(?,?,?,?,?,?,?)
-            """, (publication_id, kind, str(path), sha256, byte_size, utc_now(), source_url))
+                INSERT INTO documents(publication_id,kind,path,sha256,
+                    byte_size,downloaded_at,source_url,extracted_text,page_count,
+                    extraction_status,extraction_error) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(publication_id,kind,sha256) DO UPDATE SET
+                    path=excluded.path, byte_size=excluded.byte_size,
+                    downloaded_at=excluded.downloaded_at,
+                    extracted_text=excluded.extracted_text,
+                    page_count=excluded.page_count,
+                    extraction_status=excluded.extraction_status,
+                    extraction_error=excluded.extraction_error
+            """, (publication_id, kind, str(path), sha256, byte_size, utc_now(),
+                  source_url, extracted_text, page_count, extraction_status,
+                  extraction_error))
             connection.execute(
                 "UPDATE publications SET document_status='downloaded' WHERE id=?",
                 (publication_id,),
             )
+
+    def document_text(self, publication_id: int, kind: str = "main") -> str | None:
+        with self.connect() as connection:
+            row = connection.execute("""
+                SELECT extracted_text FROM documents
+                WHERE publication_id=? AND kind=?
+                  AND extraction_status IN ('complete','insufficient')
+                ORDER BY id DESC LIMIT 1
+            """, (publication_id, kind)).fetchone()
+            return str(row["extracted_text"]) if row else None
+
+    def update_classification(self, publication_id: int, relevance: str,
+                              reason: str, status: str) -> None:
+        with self.connect() as connection:
+            connection.execute("""
+                UPDATE publications SET relevance=?, relevance_reason=?,
+                    classification_status=? WHERE id=?
+            """, (relevance, reason, status, publication_id))
 
     def mark_document_error(self, publication_id: int) -> None:
         with self.connect() as connection:

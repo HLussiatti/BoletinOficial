@@ -78,6 +78,54 @@ class BoraParserTest(unittest.TestCase):
         )
         self.assertEqual("needs_review", classify(item)[0])
 
+    def test_unqualified_transport_is_not_relevant(self):
+        item = Publication(
+            source_id="2", publication_date=date(2026, 9, 11), section="primera",
+            category="AVISOS OFICIALES", agency="SECRETARÍA DE TRANSPORTE",
+            title="Aviso Oficial", reference="", description="",
+            detail_url="https://example.test/2",
+        )
+        self.assertEqual("not_relevant", classify(item)[0])
+
+    def test_full_text_can_promote_pending_energy_resolution(self):
+        item = Publication(
+            source_id="3", publication_date=date(2026, 9, 11), section="primera",
+            category="RESOLUCIONES", agency="SECRETARÍA DE ENERGÍA",
+            title="Resolución 3/2026", reference="RESOL-2026-3",
+            description="", detail_url="https://example.test/3",
+        )
+        relevance, _ = classify(
+            item, "Se establecen reglas para el mercado eléctrico mayorista."
+        )
+        self.assertEqual("potential_sector_impact", relevance)
+
+    def test_annex_contract_is_parsed_from_detail(self):
+        class Response:
+            url = "https://www.boletinoficial.gob.ar/detalleAviso/primera/3/20260911"
+            text = """<div onclick='descargarPDFAnexo("primera","1", "7768089",
+                "20260911", "/pdf/download_anexo");'>Anexo - 1</div>"""
+
+            def raise_for_status(self):
+                return None
+
+        class Session:
+            def __init__(self):
+                self.headers = {}
+
+            def get(self, *args, **kwargs):
+                return Response()
+
+        item = Publication(
+            source_id="3", publication_date=date(2026, 9, 11), section="primera",
+            category="RESOLUCIONES", agency="SECRETARÍA DE ENERGÍA",
+            title="Resolución 238/2026", reference="RESOL-2026-238",
+            description="", detail_url=Response.url, has_annexes=True,
+        )
+        annexes = BoraClient(Session()).fetch_annexes(item)
+        self.assertEqual(1, len(annexes))
+        self.assertEqual("annex:1:7768089", annexes[0].kind)
+        self.assertEqual("/pdf/download_anexo", annexes[0].endpoint)
+
 
 if __name__ == "__main__":
     unittest.main()

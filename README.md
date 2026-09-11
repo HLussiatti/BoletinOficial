@@ -33,7 +33,8 @@ si no se especifica un período. Los resultados se consultan y exportan con:
 Los estados distinguen una fecha cubierta, una edición todavía no publicada y una
 consulta fallida. Las publicaciones se deduplican por el identificador oficial del
 BORA. Los documentos pertinentes se validan como PDF, se escriben de forma atómica
-y se registran con SHA-256.
+y se registran con SHA-256. El texto se extrae de todas las páginas y los anexos
+indicados por el BORA se guardan como documentos separados vinculados al aviso.
 
 ## Desarrollo
 

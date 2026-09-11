@@ -38,9 +38,10 @@ def normalize(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def classify(publication: Publication) -> tuple[str, str]:
+def classify(publication: Publication, full_text: str = "") -> tuple[str, str]:
     text = normalize(" ".join((publication.agency, publication.title,
-                               publication.reference, publication.description)))
+                               publication.reference, publication.description,
+                               full_text)))
     direct = [term for term in DIRECT_TERMS if term in text]
     if direct:
         return "direct_epesf", f"Mención directa: {', '.join(direct)}"
@@ -51,6 +52,6 @@ def classify(publication: Publication) -> tuple[str, str]:
     if strong or (electric and activity):
         matches = strong or electric + activity
         return "potential_sector_impact", f"Indicios sectoriales: {', '.join(matches[:4])}"
-    if "energia" in text or electric or activity:
+    if "energia" in text or electric:
         return "needs_review", "Coincidencia relacionada que requiere revisar el texto completo"
     return "not_relevant", "Sin indicios eléctricos en los metadatos del índice"
