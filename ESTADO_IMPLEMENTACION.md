@@ -41,6 +41,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
 - pruebas locales sin red sobre la edición del 29/05/2025.
 - pruebas de edición ausente, respuestas HTTP transitorias, agotamiento de
   reintentos y rechazo de PDF inválidos.
+- muestra reproducible del 30/05/2025 con suplemento y prueba de un rango de dos
+  días que registra 153 publicaciones sin omisiones.
 
 La prueba de aceptación provisional procesó 90 publicaciones y una coincidencia
 sectorial. Dos ejecuciones consecutivas mantuvieron 90 registros, lo que verifica
@@ -69,12 +71,10 @@ reglas. Se verificaron las siete huellas del manifiesto contra el contenido del 
 
 ## Próximo trabajo
 
-1. Guardar una muestra local de una fecha con suplemento para automatizar la prueba
-   del contrato ya inspeccionado en el sitio oficial.
-2. Construir la interfaz local de consulta, filtros, detalle y apertura de PDF.
-3. Validar el resumen automático con una credencial y un modelo habilitado.
-4. Integrar el correo institucional, la programación de Windows y el instalador.
-5. Ampliar las pruebas a varias fechas conocidas antes del histórico.
+1. Construir la interfaz local de consulta, filtros, detalle y apertura de PDF.
+2. Validar el resumen automático con una credencial y un modelo habilitado.
+3. Integrar el correo institucional, la programación de Windows y el instalador.
+4. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
 validación sobre un equipo Windows limpio continúa pendiente para la etapa del

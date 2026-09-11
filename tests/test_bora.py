@@ -22,6 +22,7 @@ from epe_boletin.relevance import classify
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT / "tests" / "fixtures" / "primera_20250529.html"
+SUPPLEMENT_SAMPLE = ROOT / "tests" / "fixtures" / "primera_20250530.html"
 
 
 class BoraParserTest(unittest.TestCase):
@@ -56,6 +57,36 @@ class BoraParserTest(unittest.TestCase):
             audit = data / "audit.csv"
             self.assertEqual(1, database.export_csv(selected))
             self.assertEqual(90, database.export_csv(audit, include_all=True))
+
+    def test_supplement_is_included_and_recorded_in_a_multi_day_run(self):
+        edition = BoraClient().fetch_edition(
+            date(2025, 5, 30), SUPPLEMENT_SAMPLE
+        )
+        self.assertTrue(edition.has_supplement)
+        self.assertEqual(63, len(edition.publications))
+        self.assertTrue(any(
+            item.category == "DECRETOS (SUPLEMENTO)"
+            for item in edition.publications
+        ))
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            database = Database(data / "boletin.sqlite3")
+            result = run(
+                database, BoraClient(), data, "simulation",
+                date(2025, 5, 29), date(2025, 5, 30),
+                download=False, fixture_dir=SAMPLE.parent,
+            )
+            self.assertEqual("complete", result["status"])
+            self.assertEqual(153, result["seen"])
+            with database.connect() as connection:
+                coverage = connection.execute("""
+                    SELECT publication_date,publication_count,has_supplement
+                    FROM coverage ORDER BY publication_date
+                """).fetchall()
+            self.assertEqual(
+                [("2025-05-29", 90, 0), ("2025-05-30", 63, 1)],
+                [tuple(row) for row in coverage],
+            )
 
     def test_pdf_download_is_validated_and_named_safely(self):
         class Response:

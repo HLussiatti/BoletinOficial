@@ -101,4 +101,8 @@ $env:PYTHONPATH = "src"
 python -m unittest discover -s tests -v
 ```
 
+Las muestras incluyen dos ediciones consecutivas —29 y 30 de mayo de 2025— con
+153 publicaciones en total. La segunda contiene un suplemento y permite comprobar
+que se registra junto con la edición principal.
+
 El alcance y las etapas completas están en [PLAN_DE_TRABAJO.md](PLAN_DE_TRABAJO.md).
