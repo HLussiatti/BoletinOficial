@@ -7,9 +7,10 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
+from .documents import DocumentSection
 from .models import Publication
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 4
 
 
 def utc_now() -> str:
@@ -80,6 +81,7 @@ class Database:
                     has_annexes INTEGER NOT NULL DEFAULT 0,
                     relevance TEXT NOT NULL,
                     relevance_reason TEXT NOT NULL,
+                    relevance_rules_version TEXT NOT NULL DEFAULT 'builtin-2026-09-11.1',
                     document_status TEXT NOT NULL DEFAULT 'pending'
                         CHECK(document_status IN ('pending','downloaded','error','not_requested')),
                     classification_status TEXT NOT NULL DEFAULT 'metadata_only',
@@ -107,13 +109,34 @@ class Database:
                     extraction_status TEXT NOT NULL DEFAULT 'pending'
                         CHECK(extraction_status IN ('pending','complete','insufficient','error')),
                     extraction_error TEXT,
+                    structure_status TEXT NOT NULL DEFAULT 'pending'
+                        CHECK(structure_status IN ('pending','complete','not_applicable','error')),
+                    structure_error TEXT,
                     UNIQUE(publication_id, kind, sha256)
                 );
+                CREATE TABLE IF NOT EXISTS document_sections (
+                    id INTEGER PRIMARY KEY,
+                    document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+                    section_type TEXT NOT NULL
+                        CHECK(section_type IN ('considerations','dispositive','article')),
+                    ordinal INTEGER NOT NULL,
+                    heading TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    page_from INTEGER NOT NULL,
+                    page_to INTEGER NOT NULL,
+                    UNIQUE(document_id, section_type, ordinal)
+                );
+                CREATE INDEX IF NOT EXISTS ix_document_sections_document
+                    ON document_sections(document_id, section_type, ordinal);
             """)
             row = connection.execute("SELECT version FROM schema_info").fetchone()
             if row is None:
                 connection.execute("INSERT INTO schema_info(version) VALUES (?)", (SCHEMA_VERSION,))
-            elif row["version"] == 1:
+                return
+            current_version = int(row["version"])
+            if current_version < 1 or current_version > SCHEMA_VERSION:
+                raise RuntimeError(f"Versión de base no soportada: {current_version}")
+            if current_version == 1:
                 columns = {
                     column["name"]
                     for column in connection.execute("PRAGMA table_info(documents)")
@@ -129,9 +152,35 @@ class Database:
                         connection.execute(
                             f"ALTER TABLE documents ADD COLUMN {name} {declaration}"
                         )
+                connection.execute("UPDATE schema_info SET version=2")
+                current_version = 2
+            if current_version == 2:
+                columns = {
+                    column["name"]
+                    for column in connection.execute("PRAGMA table_info(documents)")
+                }
+                additions = {
+                    "structure_status": "TEXT NOT NULL DEFAULT 'pending'",
+                    "structure_error": "TEXT",
+                }
+                for name, declaration in additions.items():
+                    if name not in columns:
+                        connection.execute(
+                            f"ALTER TABLE documents ADD COLUMN {name} {declaration}"
+                        )
+                connection.execute("UPDATE schema_info SET version=3")
+                current_version = 3
+            if current_version == 3:
+                columns = {
+                    column["name"]
+                    for column in connection.execute("PRAGMA table_info(publications)")
+                }
+                if "relevance_rules_version" not in columns:
+                    connection.execute("""
+                        ALTER TABLE publications ADD COLUMN relevance_rules_version
+                        TEXT NOT NULL DEFAULT 'builtin-2026-09-11.1'
+                    """)
                 connection.execute("UPDATE schema_info SET version=?", (SCHEMA_VERSION,))
-            elif row["version"] != SCHEMA_VERSION:
-                raise RuntimeError(f"Versión de base no soportada: {row['version']}")
 
     def start_run(self, mode: str, date_from: date, date_to: date) -> int:
         with self.connect() as connection:
@@ -179,8 +228,9 @@ class Database:
                     INSERT INTO publications(
                         source,source_id,publication_date,section,category,agency,title,
                         reference,description,detail_url,has_annexes,relevance,
-                        relevance_reason,document_status,first_seen_at,last_seen_at)
-                    VALUES('BORA',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        relevance_reason,relevance_rules_version,document_status,
+                        first_seen_at,last_seen_at)
+                    VALUES('BORA',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     ON CONFLICT(source,source_id) DO UPDATE SET
                         publication_date=excluded.publication_date,
                         section=excluded.section, category=excluded.category,
@@ -189,6 +239,7 @@ class Database:
                         detail_url=excluded.detail_url, has_annexes=excluded.has_annexes,
                         relevance=excluded.relevance,
                         relevance_reason=excluded.relevance_reason,
+                        relevance_rules_version=excluded.relevance_rules_version,
                         document_status=CASE
                           WHEN publications.document_status='not_requested'
                                AND excluded.document_status='pending' THEN 'pending'
@@ -197,7 +248,8 @@ class Database:
                 """, (item.source_id, item.publication_date.isoformat(), item.section,
                       item.category, item.agency, item.title, item.reference,
                       item.description, item.detail_url, int(item.has_annexes),
-                      item.relevance, item.relevance_reason, document_status, now, now))
+                      item.relevance, item.relevance_reason,
+                      item.relevance_rules_version, document_status, now, now))
             source_ids = [item.source_id for item, _ in items]
             placeholders = ",".join("?" for _ in source_ids)
             rows = connection.execute(
@@ -211,7 +263,8 @@ class Database:
                       page_count: int | None = None,
                       extraction_status: str = "pending",
                       extraction_error: str | None = None,
-                      kind: str = "main") -> None:
+                      kind: str = "main",
+                      sections: tuple[DocumentSection, ...] = ()) -> int:
         with self.connect() as connection:
             connection.execute("""
                 INSERT INTO documents(publication_id,kind,path,sha256,
@@ -231,6 +284,63 @@ class Database:
                 "UPDATE publications SET document_status='downloaded' WHERE id=?",
                 (publication_id,),
             )
+            document_id = int(connection.execute("""
+                SELECT id FROM documents
+                WHERE publication_id=? AND kind=? AND sha256=?
+            """, (publication_id, kind, sha256)).fetchone()["id"])
+            self._replace_sections(connection, document_id, sections)
+            if extraction_status == "error":
+                structure_status = "error"
+                structure_error = extraction_error
+            else:
+                structure_status = "complete" if sections else "not_applicable"
+                structure_error = None
+            connection.execute("""
+                UPDATE documents SET structure_status=?,structure_error=? WHERE id=?
+            """, (structure_status, structure_error, document_id))
+            return document_id
+
+    @staticmethod
+    def _replace_sections(connection: sqlite3.Connection, document_id: int,
+                          sections: tuple[DocumentSection, ...]) -> None:
+        connection.execute(
+            "DELETE FROM document_sections WHERE document_id=?", (document_id,)
+        )
+        connection.executemany("""
+            INSERT INTO document_sections(
+                document_id,section_type,ordinal,heading,text,page_from,page_to
+            ) VALUES(?,?,?,?,?,?,?)
+        """, (
+            (document_id, section.section_type, section.ordinal, section.heading,
+             section.text, section.page_from, section.page_to)
+            for section in sections
+        ))
+
+    def documents_without_sections(self) -> list[sqlite3.Row]:
+        with self.connect() as connection:
+            return connection.execute("""
+                SELECT d.id,d.path,d.kind,p.title,p.source_id
+                FROM documents d
+                JOIN publications p ON p.id=d.publication_id
+                WHERE d.extraction_status IN ('complete','insufficient')
+                  AND d.structure_status='pending'
+                ORDER BY p.publication_date,p.id,d.kind
+            """).fetchall()
+
+    def save_document_sections(self, document_id: int,
+                               sections: tuple[DocumentSection, ...]) -> None:
+        with self.connect() as connection:
+            self._replace_sections(connection, document_id, sections)
+            structure_status = "complete" if sections else "not_applicable"
+            connection.execute("""
+                UPDATE documents SET structure_status=?,structure_error=NULL WHERE id=?
+            """, (structure_status, document_id))
+
+    def mark_document_structure_error(self, document_id: int, error: str) -> None:
+        with self.connect() as connection:
+            connection.execute("""
+                UPDATE documents SET structure_status='error',structure_error=? WHERE id=?
+            """, (error, document_id))
 
     def document_text(self, publication_id: int, kind: str = "main") -> str | None:
         with self.connect() as connection:
@@ -243,12 +353,40 @@ class Database:
             return str(row["extracted_text"]) if row else None
 
     def update_classification(self, publication_id: int, relevance: str,
-                              reason: str, status: str) -> None:
+                              reason: str, status: str, rules_version: str) -> None:
         with self.connect() as connection:
             connection.execute("""
                 UPDATE publications SET relevance=?, relevance_reason=?,
-                    classification_status=? WHERE id=?
-            """, (relevance, reason, status, publication_id))
+                    classification_status=?,relevance_rules_version=? WHERE id=?
+            """, (relevance, reason, status, rules_version, publication_id))
+
+    def publications_for_reclassification(
+        self,
+    ) -> list[tuple[int, Publication, str]]:
+        with self.connect() as connection:
+            rows = connection.execute("""
+                SELECT p.*,COALESCE(GROUP_CONCAT(d.extracted_text, '\n\n'), '') full_text
+                FROM publications p
+                LEFT JOIN documents d ON d.publication_id=p.id
+                  AND d.extraction_status IN ('complete','insufficient')
+                GROUP BY p.id
+                ORDER BY p.publication_date,p.id
+            """).fetchall()
+        results: list[tuple[int, Publication, str]] = []
+        for row in rows:
+            publication = Publication(
+                source_id=str(row["source_id"]),
+                publication_date=date.fromisoformat(row["publication_date"]),
+                section=str(row["section"]), category=str(row["category"]),
+                agency=str(row["agency"]), title=str(row["title"]),
+                reference=str(row["reference"]), description=str(row["description"]),
+                detail_url=str(row["detail_url"]), has_annexes=bool(row["has_annexes"]),
+                relevance=str(row["relevance"]),
+                relevance_reason=str(row["relevance_reason"]),
+                relevance_rules_version=str(row["relevance_rules_version"]),
+            )
+            results.append((int(row["id"]), publication, str(row["full_text"])))
+        return results
 
     def mark_document_error(self, publication_id: int) -> None:
         with self.connect() as connection:
@@ -267,11 +405,18 @@ class Database:
                   SUM(document_status='error') document_errors
                 FROM publications
             """).fetchone()
+            document_counts = connection.execute("""
+                SELECT SUM(structure_status='complete') structured,
+                       SUM(structure_status='pending') structure_pending,
+                       SUM(structure_status='error') structure_errors
+                FROM documents
+            """).fetchone()
             pending = connection.execute(
                 "SELECT COUNT(*) count FROM coverage WHERE status='failed'"
             ).fetchone()["count"]
             return {"last_run": dict(last_run) if last_run else None,
-                    "publications": dict(counts), "failed_dates": pending}
+                    "publications": dict(counts),
+                    "documents": dict(document_counts), "failed_dates": pending}
 
     def export_csv(self, destination: Path, include_all: bool = False) -> int:
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -279,13 +424,14 @@ class Database:
             where = "" if include_all else "WHERE relevance != 'not_relevant'"
             rows = connection.execute(f"""
                 SELECT publication_date,category,agency,title,reference,relevance,
-                       relevance_reason,document_status,summary_status,detail_url
+                       relevance_reason,relevance_rules_version,document_status,
+                       summary_status,detail_url
                 FROM publications {where} ORDER BY publication_date,agency,title
             """).fetchall()
         fields = list(rows[0].keys()) if rows else [
             "publication_date", "category", "agency", "title", "reference",
-            "relevance", "relevance_reason", "document_status", "summary_status",
-            "detail_url",
+            "relevance", "relevance_reason", "relevance_rules_version",
+            "document_status", "summary_status", "detail_url",
         ]
         with destination.open("w", newline="", encoding="utf-8-sig") as stream:
             writer = csv.DictWriter(stream, fieldnames=fields)

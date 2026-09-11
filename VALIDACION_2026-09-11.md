@@ -72,3 +72,7 @@ para acreditar cobertura y evitar reprocesamientos. No genera un CSV de forma
 automática. La exportación normal de esta validación contiene únicamente las
 Resoluciones 238/2026 y 239/2026; la exportación completa queda disponible sólo con
 la opción explícita `--all` para controles de auditoría.
+
+La reclasificación posterior con la configuración versionada `2026-09-11.1`
+reprodujo el resultado aprobado: 89 publicaciones descartadas y 2 seleccionadas.
+No fue necesario volver a consultar el BORA ni descargar los PDF.

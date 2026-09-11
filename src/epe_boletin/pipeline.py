@@ -11,7 +11,7 @@ from typing import Iterator
 from .bora import BoraClient, BoraError, EditionNotPublished
 from .db import Database
 from .documents import extract_pdf
-from .relevance import classify
+from .relevance import DEFAULT_RULES, classify
 
 RELEVANT = {"direct_epesf", "potential_sector_impact"}
 REQUIRES_DOCUMENT = RELEVANT | {"needs_review"}
@@ -86,6 +86,7 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                         publication_id, path, digest, size, item.detail_url,
                                         extraction.text, extraction.page_count,
                                         extraction.status, extraction.error,
+                                        sections=extraction.sections,
                                     )
                                     downloaded += 1
                                 except Exception as exc:
@@ -112,6 +113,7 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                                 extraction.text, extraction.page_count,
                                                 extraction.status, extraction.error,
                                                 kind=annex.kind,
+                                                sections=extraction.sections,
                                             )
                                             downloaded += 1
                                         annex_texts.append(annex_text)
@@ -122,13 +124,18 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                     failed += 1
                             if full_text is not None:
                                 combined_text = "\n\n".join([full_text, *annex_texts])
-                                final_relevance, reason = classify(item, combined_text)
+                                rules = getattr(client, "rules", DEFAULT_RULES)
+                                final_relevance, reason = classify(
+                                    item, combined_text, rules
+                                )
                                 item = replace(
                                     item, relevance=final_relevance,
                                     relevance_reason=reason,
+                                    relevance_rules_version=rules.version,
                                 )
                                 db.update_classification(
-                                    publication_id, final_relevance, reason, "full_text"
+                                    publication_id, final_relevance, reason, "full_text",
+                                    rules.version,
                                 )
                         if item.relevance in RELEVANT:
                             relevant += 1

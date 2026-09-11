@@ -9,7 +9,9 @@ from pathlib import Path
 
 from .bora import BoraClient
 from .db import Database
+from .documents import extract_pdf
 from .pipeline import run
+from .relevance import DEFAULT_RULES, classify, load_rules
 
 
 def configure_logging(data_dir: Path) -> Path:
@@ -35,6 +37,8 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="epe-boletin")
     result.add_argument("--data-dir", type=Path, default=Path("var"),
                         help="Carpeta para la base, documentos y estado (por defecto: var)")
+    result.add_argument("--rules", type=Path,
+                        help="Archivo JSON con reglas de relevancia versionadas")
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("init", help="Crear o actualizar la base local")
     execute = commands.add_parser("run", help="Recolectar un período del BORA")
@@ -50,6 +54,13 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--max-attempts", type=int, default=3,
                          help="Cantidad máxima de intentos HTTP")
     commands.add_parser("status", help="Mostrar el último estado operativo")
+    commands.add_parser(
+        "structure-documents",
+        help="Identificar considerandos, parte dispositiva y artículos pendientes",
+    )
+    commands.add_parser(
+        "reclassify", help="Aplicar las reglas vigentes a los registros existentes"
+    )
     export = commands.add_parser("export-csv", help="Exportar publicaciones para consulta")
     export.add_argument("destination", type=Path)
     export.add_argument("--all", action="store_true",
@@ -73,6 +84,48 @@ def main(argv: list[str] | None = None) -> int:
         count = database.export_csv(args.destination, include_all=args.all)
         print(f"Exportados {count} registros a {args.destination}")
         return 0
+    if args.command == "structure-documents":
+        database.migrate()
+        processed = structured = failed = 0
+        for row in database.documents_without_sections():
+            processed += 1
+            path = Path(row["path"])
+            if not path.is_file():
+                database.mark_document_structure_error(
+                    int(row["id"]), f"No se encontró el archivo: {path}"
+                )
+                failed += 1
+                continue
+            extraction = extract_pdf(path)
+            if extraction.status == "error":
+                database.mark_document_structure_error(
+                    int(row["id"]), extraction.error or "Falló la extracción"
+                )
+                failed += 1
+                continue
+            database.save_document_sections(int(row["id"]), extraction.sections)
+            structured += int(bool(extraction.sections))
+        print(json.dumps({"processed": processed, "structured": structured,
+                          "failed": failed}, ensure_ascii=False, indent=2))
+        return 0 if not failed else 2
+    if args.command == "reclassify":
+        database.migrate()
+        rules = load_rules(args.rules) if args.rules else DEFAULT_RULES
+        counts: dict[str, int] = {}
+        processed = 0
+        for publication_id, publication, full_text in (
+            database.publications_for_reclassification()
+        ):
+            relevance, reason = classify(publication, full_text, rules)
+            status = "full_text" if full_text else "metadata_only"
+            database.update_classification(
+                publication_id, relevance, reason, status, rules.version
+            )
+            counts[relevance] = counts.get(relevance, 0) + 1
+            processed += 1
+        print(json.dumps({"processed": processed, "rules_version": rules.version,
+                          "results": counts}, ensure_ascii=False, indent=2))
+        return 0
 
     today = date.today()
     date_from = args.date_from or today
@@ -81,7 +134,9 @@ def main(argv: list[str] | None = None) -> int:
         parser().error("--to no puede ser anterior a --from")
     configure_logging(args.data_dir)
     try:
-        client = BoraClient(timeout=args.timeout, max_attempts=args.max_attempts)
+        rules = load_rules(args.rules) if args.rules else DEFAULT_RULES
+        client = BoraClient(timeout=args.timeout, max_attempts=args.max_attempts,
+                            rules=rules)
         result = run(database, client, args.data_dir, args.mode,
                      date_from, date_to, not args.no_download, args.fixture_dir)
     except Exception as exc:

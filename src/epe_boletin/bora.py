@@ -16,7 +16,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .models import Annex, Edition, Publication
-from .relevance import classify
+from .relevance import DEFAULT_RULES, RelevanceRules, classify
 
 BASE_URL = "https://www.boletinoficial.gob.ar"
 DETAIL_RE = re.compile(r"/detalleAviso/(?P<section>[^/]+)/(?P<id>\d+)/(?P<date>\d{8})")
@@ -49,7 +49,8 @@ def _clean(node) -> str:
     return node.get_text(" ", strip=True) if node else ""
 
 
-def parse_publications(html: str, publication_date: date) -> list[Publication]:
+def parse_publications(html: str, publication_date: date,
+                       rules: RelevanceRules = DEFAULT_RULES) -> list[Publication]:
     soup = BeautifulSoup(html, "html.parser")
     results: list[Publication] = []
     current_category = ""
@@ -78,8 +79,11 @@ def parse_publications(html: str, publication_date: date) -> list[Publication]:
             description=description, detail_url=urljoin(BASE_URL, anchor["href"]),
             has_annexes=has_annexes,
         )
-        relevance, reason = classify(item)
-        results.append(replace(item, relevance=relevance, relevance_reason=reason))
+        relevance, reason = classify(item, rules=rules)
+        results.append(replace(
+            item, relevance=relevance, relevance_reason=reason,
+            relevance_rules_version=rules.version,
+        ))
     return results
 
 
@@ -116,7 +120,8 @@ class BoraClient:
 
     def __init__(self, session: requests.Session | None = None, timeout: float = 30,
                  max_attempts: int = 3, backoff_seconds: float = 0.5,
-                 sleep: Callable[[float], None] = time.sleep):
+                 sleep: Callable[[float], None] = time.sleep,
+                 rules: RelevanceRules = DEFAULT_RULES):
         if max_attempts < 1:
             raise ValueError("max_attempts debe ser al menos 1")
         self.session = session or requests.Session()
@@ -124,6 +129,7 @@ class BoraClient:
         self.max_attempts = max_attempts
         self.backoff_seconds = backoff_seconds
         self.sleep = sleep
+        self.rules = rules
         self.session.headers.update({
             "User-Agent": "EPESF-Boletin/0.1 (+seguimiento normativo institucional)",
         })
@@ -163,7 +169,7 @@ class BoraClient:
         selected = SELECTED_DATE_RE.search(html)
         if (selected and selected.group(1) != ymd) or ymd not in final_url:
             raise EditionNotPublished(f"El BORA no publicó la Primera Sección para {day.isoformat()}")
-        publications = parse_publications(html, day)
+        publications = parse_publications(html, day, self.rules)
         if not publications:
             raise BoraError("La edición respondió sin publicaciones reconocibles")
         expected_count = parse_expected_count(html)
@@ -186,7 +192,7 @@ class BoraClient:
                 raise BoraError("El BORA respondió una página adicional inválida") from exc
             if not isinstance(payload, dict):
                 raise BoraError("El BORA respondió una página adicional inesperada")
-            extra = parse_publications(payload.get("html", ""), day)
+            extra = parse_publications(payload.get("html", ""), day, self.rules)
             for publication in extra:
                 if publication.source_id not in seen:
                     publications.append(publication)

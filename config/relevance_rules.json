@@ -1,0 +1,36 @@
+{
+  "version": "2026-09-11.1",
+  "direct_terms": [
+    "EPESF",
+    "E.P.E.",
+    "Empresa Provincial de la Energía de Santa Fe"
+  ],
+  "strong_sector_terms": [
+    "energía eléctrica",
+    "mercado eléctrico mayorista",
+    "CAMMESA",
+    "Ente Nacional Regulador de la Electricidad",
+    "generación distribuida",
+    "Subsecretaría de Energía Eléctrica"
+  ],
+  "electric_terms": [
+    "electricidad",
+    "eléctrica",
+    "eléctrico"
+  ],
+  "activity_terms": [
+    "distribución",
+    "transporte",
+    "generación",
+    "tarifa",
+    "subsidio",
+    "usuario",
+    "potencia"
+  ],
+  "local_terms": [
+    "Santa Fe",
+    "EPESF",
+    "E.P.E."
+  ],
+  "discard_nonlocal_official_notices": true
+}

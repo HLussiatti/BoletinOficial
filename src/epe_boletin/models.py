@@ -18,6 +18,7 @@ class Publication:
     has_annexes: bool = False
     relevance: str = "pending"
     relevance_reason: str = ""
+    relevance_rules_version: str = "builtin-2026-09-11.1"
 
 
 @dataclass(frozen=True, slots=True)
