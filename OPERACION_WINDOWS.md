@@ -1,14 +1,12 @@
 # Operación en Windows
 
-Esta guía describe los componentes ya preparados para la operación local. La tarea
-programada no debe instalarse hasta completar la configuración del equipo y del
-servicio de resumen.
+Esta guía describe la operación local diaria y la tarea programada de Windows.
 
 ## Ejecución diaria
 
-El modo `daily` toma la última fecha con cobertura completa, retrocede siete días y
-consulta hasta la fecha actual. Así recupera días omitidos y vuelve a comprobar
-publicaciones tardías. El bloqueo `run.lock` impide dos ejecuciones simultáneas.
+El modo `daily` consulta exclusivamente la edición correspondiente a la fecha
+actual. Después de la recolección genera con Gemini los resúmenes pendientes de esa
+misma fecha. El bloqueo `run.lock` impide dos ejecuciones simultáneas.
 
 ```powershell
 .\epe-boletin.exe --data-dir C:\EPESF\Boletin\datos `
@@ -20,12 +18,15 @@ la base y en `datos\logs\epe-boletin.log`.
 
 ## Tarea programada
 
-`scripts\run_daily.ps1` ejecuta el comando anterior con rutas absolutas.
+`scripts\run_daily.ps1` ejecuta ambos pasos con rutas absolutas. La clave se toma de
+`GEMINI_API_KEY` o de `datos\gemini_api_key.txt`; el archivo debe quedar fuera del
+repositorio.
 `scripts\install_scheduled_task.ps1` registra una tarea diaria a las 05:30 con estas
 opciones:
 
 - iniciar cuando el equipo vuelva a estar disponible;
 - reactivar el equipo cuando Windows y el hardware lo permitan;
+- ejecutar también cuando el equipo use batería;
 - impedir ejecuciones simultáneas;
 - limitar cada ejecución a dos horas.
 
@@ -66,8 +67,9 @@ restaurada. El comando no reemplaza automáticamente una base operativa existent
 
 ## Preparación manual del correo
 
-La interfaz local incluye el botón **Preparar correo**. La acción toma las
-publicaciones de la vista filtrada que ya tengan un resumen completo, crea uno o más
+La interfaz local permite marcar publicaciones con resumen completo e incluye el
+botón **Generar correo con seleccionadas**. La acción toma solamente las casillas
+marcadas, crea uno o más
 archivos `.eml` en `datos\outbox` y los abre con el programa asociado por Windows.
 El aplicativo deja vacíos remitente y destinatarios. Una persona completa esos
 campos, revisa el contenido y decide si envía el mensaje. No se configura SMTP ni se
@@ -77,7 +79,7 @@ realizan envíos automáticos.
 
 Se copia `config\operation.example.json` a una ubicación operativa y se completan
 los valores institucionales. La clave de Gemini permanece en la variable indicada
-por `api_key_env`.
+por `api_key_env` o en el archivo local de credencial mencionado arriba.
 
 ```powershell
 .\epe-boletin.exe check-config C:\EPESF\Boletin\config\operation.json

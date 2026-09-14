@@ -117,7 +117,10 @@ class WebApplicationTest(unittest.TestCase):
             )
             opened: list[Path] = []
             app = WebApplication(database, data_dir, opened.append)
-            query = Query(day="2026-09-14", text="30/2026")
+            query = Query(
+                day="2026-09-14", text="30/2026",
+                selected_ids=(publication_id,),
+            )
 
             artifacts = app.prepare_email(query)
             message = BytesParser(policy=policy.default).parsebytes(
@@ -129,7 +132,40 @@ class WebApplicationTest(unittest.TestCase):
             self.assertIsNone(message["From"])
             self.assertIsNone(message["To"])
             page = render_page(app, query).decode("utf-8")
-            self.assertIn("Preparar correo (1)", page)
+            self.assertIn("Generar correo con seleccionadas", page)
+            self.assertIn(f'value="{publication_id}"', page)
+
+    def test_email_requires_an_explicit_selection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data_dir = Path(folder)
+            database = Database(data_dir / "boletin.sqlite3")
+            database.migrate()
+            app = WebApplication(database, data_dir, lambda _: None)
+
+            with self.assertRaisesRegex(ValueError, "Seleccioná"):
+                app.prepare_email(Query(day="2026-09-14"))
+
+    def test_historical_view_aggregates_all_dates(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data_dir = Path(folder)
+            database = Database(data_dir / "boletin.sqlite3")
+            database.migrate()
+            for source_id, day in (("40", date(2025, 11, 1)), ("41", date(2026, 9, 14))):
+                database.upsert_publication(Publication(
+                    source_id=source_id, publication_date=day,
+                    section="primera", category="RESOLUCIONES",
+                    agency="SECRETARÍA DE ENERGÍA", title=f"Resolución {source_id}/2026",
+                    reference=f"RESOL-2026-{source_id}", description="Régimen eléctrico",
+                    detail_url=f"https://example.test/{source_id}",
+                    relevance="potential_sector_impact", relevance_reason="Sector eléctrico",
+                ), True)
+            app = WebApplication(database, data_dir)
+
+            page = render_page(app, Query(history=True)).decode("utf-8")
+
+            self.assertEqual(2, len(app.publications(Query(history=True))))
+            self.assertEqual(2, app.date_stats()["total"])
+            self.assertIn("Histórico desde noviembre de 2025", page)
 
 
 if __name__ == "__main__":

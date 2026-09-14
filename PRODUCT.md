@@ -30,7 +30,8 @@ Node.js ni alojamiento público.
 - Abrir el aviso oficial, el PDF principal y sus anexos.
 - Identificar documentos, resúmenes o entregas con errores pendientes.
 - Exportar el conjunto filtrado cuando haga falta un control adicional.
-- Preparar un `.eml` con el conjunto filtrado y abrirlo en el correo predeterminado.
+- Seleccionar publicaciones y preparar un `.eml` sólo con ellas en el correo
+  predeterminado.
 
 ## Reglas y decisiones confirmadas
 
@@ -50,6 +51,10 @@ Node.js ni alojamiento público.
   destinatarios; una persona completa esos campos, revisa y envía desde su cliente.
 - El modelo inicial para los resúmenes es `gemini-3.5-flash-lite` mediante la
   Interactions API de Gemini, en su nivel gratuito y con salida JSON estructurada.
+- La tarea diaria se inicia a las 05:30, consulta sólo la fecha corriente y genera
+  con Gemini los resúmenes pendientes de esa edición.
+- El histórico consolidado desde el 01/11/2025 permanece disponible para consulta,
+  búsqueda y apertura de sus PDF desde la misma interfaz.
 
 ## Evidencia disponible
 

@@ -122,7 +122,7 @@ El horario inicial propuesto es **05:30 todos los días**, hora de Buenos Aires 
 
 La máquina deberá tener conectividad y estar encendida o en un estado de suspensión desde el que pueda reanudarse con la configuración disponible. Se comprobarán las condiciones reales de energía, sesión y correo: no se supondrá que la aplicación puede arrancar una computadora completamente apagada. Si la ejecución no ocurre, se recuperará al volver a estar disponible y quedará identificada como tardía. El procesamiento histórico será independiente y no deberá bloquear el ciclo diario ni competir por el envío de correos.
 
-Cada ejecución recuperará el período desde el último avance exitoso y revisará además una ventana de solapamiento, inicialmente de siete días, para detectar incorporaciones o cambios recientes. La recuperación de una interrupción prolongada no quedará limitada a esos siete días. Habrá un bloqueo para evitar ejecuciones simultáneas.
+Cada ejecución diaria consultará exclusivamente las publicaciones de la fecha corriente. La recuperación de períodos anteriores se realizará de forma explícita con el modo histórico. Habrá un bloqueo para evitar ejecuciones simultáneas.
 
 Se distinguirán cuatro resultados: novedades pertinentes, consulta completa sin novedades pertinentes, edición aún no disponible y consulta incompleta/fallida. Propongo guardar todos los resultados y enviar al grupo sólo novedades; los fallos persistentes se comunicarían al responsable operativo. La política de correo sin novedades queda por definir con EPESF.
 

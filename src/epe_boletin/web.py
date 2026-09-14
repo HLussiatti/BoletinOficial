@@ -54,6 +54,8 @@ class Query:
     day: str = ""
     relevance: str = "active"
     text: str = ""
+    history: bool = False
+    selected_ids: tuple[int, ...] = ()
     email_status: str = ""
     email_items: int = 0
     email_files: int = 0
@@ -64,10 +66,15 @@ class Query:
         values = parse_qs(query)
         item_value = values.get("items", ["0"])[0]
         file_value = values.get("files", ["0"])[0]
+        selected_ids = tuple(
+            int(value) for value in values.get("selected", []) if value.isdigit()
+        )
         return cls(
             day=values.get("date", [""])[0].strip(),
             relevance=values.get("relevance", ["active"])[0].strip(),
             text=values.get("q", [""])[0].strip(),
+            history=values.get("history", [""])[0] == "1",
+            selected_ids=selected_ids,
             email_status=values.get("email", [""])[0].strip(),
             email_items=int(item_value) if item_value.isdigit() else 0,
             email_files=int(file_value) if file_value.isdigit() else 0,
@@ -123,14 +130,16 @@ class WebApplication:
             row = connection.execute("SELECT MAX(publication_date) value FROM publications").fetchone()
         return str(row["value"] or "")
 
-    def date_stats(self, day: str) -> dict[str, int]:
+    def date_stats(self, day: str = "") -> dict[str, int]:
+        where = " WHERE publication_date=?" if day else ""
+        parameters = (day,) if day else ()
         with self.database.connect() as connection:
-            row = connection.execute("""
+            row = connection.execute(f"""
                 SELECT COUNT(*) total,
                   COALESCE(SUM(relevance IN ('direct_epesf','potential_sector_impact')),0) relevant,
                   COALESCE(SUM(document_status='downloaded'),0) downloaded
-                FROM publications WHERE publication_date=?
-            """, (day,)).fetchone()
+                FROM publications{where}
+            """, parameters).fetchone()
         return {key: int(row[key] or 0) for key in row.keys()}
 
     def operational_issues(self) -> list[dict[str, str]]:
@@ -174,9 +183,13 @@ class WebApplication:
         return path, str(row["kind"])
 
     def email_items(self, query: Query):
-        if not query.day:
+        if not query.day or not query.selected_ids:
             return []
-        selected_ids = tuple(int(row["id"]) for row in self.publications(query))
+        visible_ids = {int(row["id"]) for row in self.publications(query)}
+        selected_ids = tuple(
+            publication_id for publication_id in query.selected_ids
+            if publication_id in visible_ids
+        )
         return self.database.bulletin_items(date.fromisoformat(query.day), selected_ids)
 
     def prepare_email(self, query: Query) -> list[EmailArtifact]:
@@ -184,7 +197,11 @@ class WebApplication:
             day = date.fromisoformat(query.day)
         except ValueError as exc:
             raise ValueError("Elegí una fecha válida para preparar el correo") from exc
+        if not query.selected_ids:
+            raise ValueError("Seleccioná al menos una publicación con resumen completo")
         items = self.email_items(query)
+        if not items:
+            raise ValueError("La selección no contiene publicaciones listas para el correo")
         output = self.data_dir / "outbox" / f"boletin_{day:%Y_%m_%d}.eml"
         artifacts = build_email_batches(items, day, output)
         for index, artifact in enumerate(artifacts, 1):
@@ -204,8 +221,8 @@ def open_eml(path: Path) -> None:
 
 CSS = """
 :root{--ink:#171715;--paper:#f5f2eb;--panel:#fffdf8;--muted:#66645f;--line:#d8d2c5;--gold:#b88a27;--focus:#624600;--ok:#27643a;--warn:#8b5a11;--bad:#9d2f2f;font-family:Segoe UI,Tahoma,Arial,sans-serif;color:var(--ink);background:var(--paper);scrollbar-color:var(--gold) var(--paper)}
-*{box-sizing:border-box}::selection{background:#d8b763;color:var(--ink)}body{margin:0;overflow-wrap:anywhere}.shell{max-width:1480px;margin:auto;padding:28px 34px 64px}.mast{display:grid;grid-template-columns:1fr auto;gap:24px;border-top:5px solid var(--ink);border-bottom:2px solid var(--gold);padding:18px 0 20px}.mast>*{min-width:0}.context{font-size:.82rem;color:var(--muted);margin-top:7px}h1{font-family:Georgia,serif;font-size:clamp(2rem,4vw,4.2rem);line-height:.95;margin:.22em 0}.date{font-variant-numeric:tabular-nums;font-size:1.1rem}.run{align-self:center;padding:10px 0 0;min-width:240px}.run strong{display:block;font-size:1.15rem}.workflow{border-left:2px solid var(--gold);padding-left:16px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}.metric{padding:18px 16px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric b{display:block;font-family:Georgia,serif;font-size:2rem}.metric span{color:var(--muted);font-size:.82rem}.filters{display:grid;grid-template-columns:180px 210px minmax(220px,1fr) auto;gap:12px;padding:22px 0;align-items:end}label{display:grid;gap:6px;min-width:0;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}input,select,button{width:100%;max-width:100%;font:inherit;border:1px solid #aaa396;background:var(--panel);padding:10px 11px;color:var(--ink);caret-color:var(--focus);min-height:42px}button{cursor:pointer;background:var(--ink);color:white;border-color:var(--ink);font-weight:700}button:hover{background:#383832}a:hover{text-decoration-thickness:2px;color:#102f4e}input:hover,select:hover{border-color:#625e55}input:focus,select:focus,button:focus,a:focus,summary:focus{outline:3px solid var(--focus);outline-offset:2px}.result-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding:9px 0;gap:12px}.result-head h2,.alerts h2{font-family:Georgia,serif;margin:0;font-size:1.45rem}.row{display:grid;grid-template-columns:120px minmax(280px,1.2fr) minmax(300px,2fr) 150px;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);align-items:start}.row>*{min-width:0}.type{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.title{font-family:Georgia,serif;font-size:1.15rem;margin:4px 0}.agency{font-size:.8rem;font-weight:700}.reason{color:var(--muted);line-height:1.5}.status{display:inline-block;padding:5px 8px;border:1px solid currentColor;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.status.direct_epesf,.status.potential_sector_impact{color:var(--ok)}.status.needs_review{color:var(--warn)}.status.not_relevant{color:var(--muted)}details{margin-top:10px}summary{cursor:pointer;font-weight:700;font-size:.82rem}.summary{border-top:2px solid var(--gold);padding-top:10px;line-height:1.55;margin:12px 0}.links{display:flex;flex-direction:column;gap:7px}a{color:#234d75;text-underline-offset:3px}.alerts{border:2px solid var(--bad);padding:16px;margin:22px 0}.alerts h2{color:var(--bad)}.alerts ul{margin-bottom:0}.empty{padding:48px 0;border-bottom:1px solid var(--line);font-family:Georgia,serif;font-size:1.3rem}.foot{margin-top:24px;color:var(--muted);font-size:.78rem}::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:var(--paper)}::-webkit-scrollbar-thumb{background:var(--gold);border:3px solid var(--paper)}
-.actions{display:flex;align-items:center;gap:16px}.email-form{margin:0}.email-form button{width:auto}.email-form button:disabled{cursor:not-allowed;background:#77736a;border-color:#77736a}.notice{padding:13px 15px;margin:18px 0;border-left:5px solid var(--ok);background:#edf5ed}.notice.error{border-color:var(--bad);background:#f8eaea}
+*{box-sizing:border-box}::selection{background:#d8b763;color:var(--ink)}body{margin:0;overflow-wrap:anywhere}.shell{max-width:1480px;margin:auto;padding:28px 34px 64px}.mast{display:grid;grid-template-columns:1fr auto;gap:24px;border-top:5px solid var(--ink);border-bottom:2px solid var(--gold);padding:18px 0 20px}.mast>*{min-width:0}.context{font-size:.82rem;color:var(--muted);margin-top:7px}h1{font-family:Georgia,serif;font-size:clamp(2rem,4vw,4.2rem);line-height:.95;margin:.22em 0}.date{font-variant-numeric:tabular-nums;font-size:1.1rem}.run{align-self:center;padding:10px 0 0;min-width:240px}.run strong{display:block;font-size:1.15rem}.workflow{border-left:2px solid var(--gold);padding-left:16px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}.metric{padding:18px 16px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric b{display:block;font-family:Georgia,serif;font-size:2rem}.metric span{color:var(--muted);font-size:.82rem}.filters{display:grid;grid-template-columns:180px 210px minmax(220px,1fr) auto;gap:12px;padding:22px 0;align-items:end}label{display:grid;gap:6px;min-width:0;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}input,select,button{width:100%;max-width:100%;font:inherit;border:1px solid #aaa396;background:var(--panel);padding:10px 11px;color:var(--ink);caret-color:var(--focus);min-height:42px}button{cursor:pointer;background:var(--ink);color:white;border-color:var(--ink);font-weight:700}button:hover{background:#383832}a:hover{text-decoration-thickness:2px;color:#102f4e}input:hover,select:hover{border-color:#625e55}input:focus,select:focus,button:focus,a:focus,summary:focus{outline:3px solid var(--focus);outline-offset:2px}.result-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding:9px 0;gap:12px}.result-head h2,.alerts h2{font-family:Georgia,serif;margin:0;font-size:1.45rem}.row{display:grid;grid-template-columns:72px 120px minmax(280px,1.2fr) minmax(300px,2fr) 150px;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);align-items:start}.row>*{min-width:0}.type{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.title{font-family:Georgia,serif;font-size:1.15rem;margin:4px 0}.agency{font-size:.8rem;font-weight:700}.reason{color:var(--muted);line-height:1.5}.status{display:inline-block;padding:5px 8px;border:1px solid currentColor;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.status.direct_epesf,.status.potential_sector_impact{color:var(--ok)}.status.needs_review{color:var(--warn)}.status.not_relevant{color:var(--muted)}details{margin-top:10px}summary{cursor:pointer;font-weight:700;font-size:.82rem}.summary{border-top:2px solid var(--gold);padding-top:10px;line-height:1.55;margin:12px 0}.links{display:flex;flex-direction:column;gap:7px}a{color:#234d75;text-underline-offset:3px}.alerts{border:2px solid var(--bad);padding:16px;margin:22px 0}.alerts h2{color:var(--bad)}.alerts ul{margin-bottom:0}.empty{padding:48px 0;border-bottom:1px solid var(--line);font-family:Georgia,serif;font-size:1.3rem}.foot{margin-top:24px;color:var(--muted);font-size:.78rem}::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:var(--paper)}::-webkit-scrollbar-thumb{background:var(--gold);border:3px solid var(--paper)}
+.actions{display:flex;align-items:center;gap:16px}.selection-form{margin:0}.selection-form button{width:auto}.selection-form button:disabled{cursor:not-allowed;background:#77736a;border-color:#77736a}.pick{display:flex;justify-content:center;padding-top:2px}.pick label{display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-size:.78rem;cursor:pointer}.pick input{width:20px;height:20px;min-height:0;margin:0;accent-color:var(--ink)}.pick input:disabled{cursor:not-allowed}.period-nav{display:flex;gap:14px;align-items:center;margin:-8px 0 12px;font-size:.82rem}.notice{padding:13px 15px;margin:18px 0;border-top:2px solid var(--ok);background:#edf5ed}.notice.error{border-color:var(--bad);background:#f8eaea}
 @media(max-width:1050px){.shell{padding:18px}.mast{grid-template-columns:1fr}.run{border-left:0;border-top:3px solid var(--gold);padding:12px 0}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(2){border-right:0}.filters{grid-template-columns:1fr 1fr}.filters label:last-of-type{grid-column:1/-1}.row{grid-template-columns:1fr}.links{flex-direction:row;flex-wrap:wrap}}
 @media(max-width:520px){.filters{grid-template-columns:1fr}.filters label:last-of-type{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(odd){border-right:1px solid var(--line)}.metric:nth-child(even){border-right:0}.result-head{align-items:flex-start;flex-direction:column}.actions{width:100%;justify-content:space-between;flex-wrap:wrap}}
 @media(max-width:360px){.metrics{grid-template-columns:1fr}.metric{border-right:0!important}}
@@ -215,13 +232,18 @@ CSS = """
 def render_page(app: WebApplication, query: Query) -> bytes:
     status = app.database.status()
     latest = app.latest_date()
-    if not query.day and latest:
-        query = Query(latest, query.relevance, query.text)
+    if not query.day and latest and not query.history:
+        query = Query(
+            day=latest, relevance=query.relevance, text=query.text,
+            email_status=query.email_status, email_items=query.email_items,
+            email_files=query.email_files, email_error=query.email_error,
+        )
     rows = app.publications(query)
-    ready_count = len(app.email_items(query))
+    ready_ids = {int(row["id"]) for row in rows if row.get("conceptual_summary")}
+    ready_count = len(ready_ids)
     issues = app.operational_issues()
     last = status.get("last_run") or {}
-    counts = app.date_stats(query.day) if query.day else {"total": 0, "relevant": 0, "downloaded": 0}
+    counts = app.date_stats(query.day)
     options = [
         ("active", "Seleccionadas y pendientes"), ("all", "Todas"),
         ("direct_epesf", "Impacto directo"),
@@ -252,8 +274,18 @@ def render_page(app: WebApplication, query: Query) -> bytes:
             if row.get("description"):
                 details += f'<p class="reason">{_h(row["description"])}</p>'
             details += "</details>"
+        publication_id = int(row["id"])
+        if query.day and publication_id in ready_ids:
+            picker = (
+                f'<label><input type="checkbox" name="selected" '
+                f'value="{publication_id}"> Incluir</label>'
+            )
+        else:
+            reason = "Elegí una fecha" if not query.day else "Sin resumen"
+            picker = f'<label title="{reason}"><input type="checkbox" disabled> {reason}</label>'
         rows_html.append(f"""
           <article class="row">
+            <div class="pick">{picker}</div>
             <div><div class="type">{_h(row['category'])}</div><div class="date">{_h(row['publication_date'])}</div></div>
             <div><div class="agency">{_h(row['agency'])}</div><div class="title">{_h(row['title'])}</div><div>{_h(row['reference'])}</div></div>
             <div><span class="status {_h(row['relevance'])}">{_h(_label(str(row['relevance'])))}</span><p class="reason">{_h(row['relevance_reason'])}</p>{details}</div>
@@ -273,12 +305,20 @@ def render_page(app: WebApplication, query: Query) -> bytes:
             )
         alert_rows = "".join(alert_items)
         alerts = f'<section class="alerts"><h2>Requiere atención</h2><ul>{alert_rows}</ul></section>'
-    params = urlencode({"date": query.day, "relevance": query.relevance, "q": query.text})
+    view_parameters = {
+        "date": query.day, "relevance": query.relevance, "q": query.text,
+    }
+    if query.history:
+        view_parameters["history"] = "1"
+    params = urlencode(view_parameters)
     notice = ""
     if query.email_status == "prepared":
+        item_label = "publicación" if query.email_items == 1 else "publicaciones"
+        file_label = "archivo" if query.email_files == 1 else "archivos"
+        prepared_verb = "Se preparó" if query.email_items == 1 else "Se prepararon"
         notice = (
-            f'<div class="notice" role="status">Se prepararon {_h(query.email_items)} '
-            f'publicaciones en {_h(query.email_files)} archivo(s) .eml y se abrió el correo '
+            f'<div class="notice" role="status">{prepared_verb} {_h(query.email_items)} '
+            f'{item_label} en {_h(query.email_files)} {file_label} .eml y se abrió el correo '
             "predeterminado. Completá remitente y destinatarios antes de enviar.</div>"
         )
     elif query.email_error:
@@ -287,16 +327,26 @@ def render_page(app: WebApplication, query: Query) -> bytes:
         f'<input type="hidden" name="date" value="{_h(query.day)}">'
         f'<input type="hidden" name="relevance" value="{_h(query.relevance)}">'
         f'<input type="hidden" name="q" value="{_h(query.text)}">'
+        + ('<input type="hidden" name="history" value="1">' if query.history else '')
     )
-    disabled = "" if ready_count else (
-        ' disabled title="No hay publicaciones filtradas con resumen completo"'
+    if not query.day:
+        disabled = ' disabled title="Elegí una fecha para preparar el correo"'
+    elif not ready_count:
+        disabled = ' disabled title="No hay publicaciones filtradas con resumen completo"'
+    else:
+        disabled = ""
+    period_label = query.day or "Histórico desde noviembre de 2025"
+    period_nav = (
+        '<div class="period-nav"><a href="/?history=1&relevance=active">Ver todo el histórico</a></div>'
+        if query.day else
+        f'<div class="period-nav"><a href="/?date={_h(latest)}&relevance=active">Volver a la última edición</a></div>'
     )
     page = f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boletín EPESF</title><style>{CSS}</style></head>
-    <body><main class="shell"><header class="mast"><div><h1>Boletín EPESF</h1><div class="date">Edición consultada: <strong>{_h(query.day or 'sin datos')}</strong></div><div class="context">Seguimiento normativo de la Primera Sección del BORA</div></div>
+    <body><main class="shell"><header class="mast"><div><h1>Boletín EPESF</h1><div class="date">Período consultado: <strong>{_h(period_label)}</strong></div><div class="context">Seguimiento normativo de la Primera Sección del BORA</div></div>
     <div class="run"><span class="context">Última ejecución</span><strong>{_h(_label(last.get('status')))}</strong><span>{_h(_timestamp(last.get('finished_at')))}</span></div></header><div class="workflow">
     <section class="metrics" aria-label="Estado general"><div class="metric"><b>{int(counts.get('total') or 0)}</b><span>publicaciones registradas</span></div><div class="metric"><b>{int(counts.get('relevant') or 0)}</b><span>relevantes</span></div><div class="metric"><b>{int(counts.get('downloaded') or 0)}</b><span>documentos descargados</span></div><div class="metric"><b>{int(status.get('failed_dates') or 0)}</b><span>fechas con fallas</span></div></section>
-    {alerts}{notice}<form class="filters" method="get"><label>Fecha<input type="date" name="date" value="{_h(query.day)}"></label><label>Relevancia<select name="relevance">{option_html}</select></label><label>Buscar<input type="search" name="q" value="{_h(query.text)}" placeholder="Organismo, tipo, número o texto"></label><button type="submit">Aplicar filtros</button></form>
-    <section><div class="result-head"><h2>Publicaciones</h2><div class="actions"><a href="/export.csv?{params}">Exportar esta vista</a><form class="email-form" action="/prepare-email" method="post">{hidden}<button type="submit"{disabled}>Preparar correo ({ready_count})</button></form></div></div>{content}</section>
+    {alerts}{notice}<form class="filters" method="get"><label>Fecha<input type="date" name="date" value="{_h(query.day)}"></label><label>Relevancia<select name="relevance">{option_html}</select></label><label>Buscar<input type="search" name="q" value="{_h(query.text)}" placeholder="Organismo, tipo, número o texto"></label><button type="submit">Aplicar filtros</button></form>{period_nav}
+    <section><form class="selection-form" action="/prepare-email" method="post">{hidden}<div class="result-head"><h2>Publicaciones</h2><div class="actions"><a href="/export.csv?{params}">Exportar esta vista</a><button type="submit"{disabled}>Generar correo con seleccionadas</button></div></div>{content}</form></section>
     </div><footer class="foot">Servicio local · Los datos y documentos permanecen en este equipo.</footer></main></body></html>"""
     return page.encode("utf-8")
 
@@ -325,6 +375,8 @@ def create_handler(app: WebApplication):
             parameters = {
                 "date": query.day, "relevance": query.relevance, "q": query.text,
             }
+            if query.history:
+                parameters["history"] = "1"
             try:
                 artifacts = app.prepare_email(query)
                 parameters.update({

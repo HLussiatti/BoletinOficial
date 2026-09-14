@@ -22,10 +22,8 @@ ejecuta así:
   --mode simulation --from 2025-05-29 --to 2025-05-29 --no-download
 ```
 
-Para un histórico se usa `--mode historical`; el modo `daily` toma la fecha actual
-si no se especifica un período. En ese modo recupera desde la última fecha cubierta
-y vuelve a revisar siete días para detectar incorporaciones tardías. El solapamiento
-se ajusta con `--overlap-days`. Los resultados se consultan y exportan con:
+Para un histórico se usa `--mode historical`; el modo `daily` consulta únicamente
+la fecha actual. Los resultados se consultan y exportan con:
 
 ```powershell
 .\.venv\Scripts\epe-boletin.exe --data-dir var status
@@ -42,10 +40,12 @@ La interfaz de consulta local se inicia con:
 
 El comando abre el navegador predeterminado y mantiene el servicio exclusivamente
 en `127.0.0.1`. La pantalla muestra el estado de la última ejecución, permite
-filtrar por fecha, relevancia y texto, abre los PDF registrados y exporta solamente
-la vista filtrada. El botón **Preparar correo** crea un `.eml` con las publicaciones
-visibles que tengan un resumen completo y lo abre con el cliente de correo asociado
-en Windows. El usuario completa remitente y destinatarios y decide si lo envía. Se
+filtrar por fecha, relevancia y texto, recorrer el histórico consolidado desde
+noviembre de 2025, abrir los PDF registrados y exportar solamente la vista filtrada.
+Cada publicación con resumen completo incluye una casilla. El botón **Generar correo
+con seleccionadas** crea un `.eml` sólo con las casillas marcadas y lo abre con el
+cliente de correo asociado en Windows. El usuario completa remitente y destinatarios
+y decide si lo envía. Se
 cierra con `Ctrl+C` en la ventana desde la que se inició.
 
 El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene las
@@ -88,7 +88,7 @@ disponible mediante `--provider openai`. La referencia técnica es la
 
 ```powershell
 $env:GEMINI_API_KEY = "..."
-.\.venv\Scripts\epe-boletin.exe --data-dir var summarize --max-items 2
+.\.venv\Scripts\epe-boletin.exe --data-dir var summarize --date 2026-09-14
 ```
 
 `build-email` adjunta únicamente los documentos de las publicaciones seleccionadas

@@ -36,20 +36,20 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   envío automático;
 - configuración operativa externa y diagnóstico de preparación, sin credenciales
   persistidas ni valores secretos mostrados en la salida;
-- recuperación diaria desde la última cobertura completa, con siete días de
-  solapamiento configurables;
+- ejecución diaria acotada a la fecha corriente, seguida por resúmenes Gemini sólo
+  para las publicaciones relevantes de esa edición;
 - respaldo ZIP transaccional de SQLite, documentos y reglas, con manifiesto y
   huellas SHA-256;
 - restauración segura en una carpeta vacía, con validación de todas las huellas,
   integridad de SQLite y claves foráneas antes de publicar el resultado;
-- scripts de Windows preparados para la ejecución diaria a las 05:30, sin haber
-  instalado todavía la tarea programada.
+- scripts de Windows preparados para la ejecución diaria a las 05:30.
 - construcción reproducible con PyInstaller de un paquete portable para Windows
   x64, con ejecutable, reglas, scripts y manuales.
 - descubrimiento, descarga y almacenamiento separado de anexos;
 - consulta de estado y exportación CSV;
 - interfaz de consulta en navegador, servida exclusivamente en `127.0.0.1`, con
-  estado diario, filtros, exportación de la vista y apertura segura de PDF;
+  estado diario, acceso al histórico consolidado, filtros, selección individual
+  para `.eml`, exportación de la vista y apertura segura de PDF;
 - pruebas locales sin red sobre la edición del 29/05/2025.
 - pruebas de edición ausente, respuestas HTTP transitorias, agotamiento de
   reintentos y rechazo de PDF inválidos.
@@ -131,12 +131,24 @@ El paquete `epe-boletin-0.1.0-windows-x64.zip` se extrajo en una carpeta aislada
 ejecutable inició una base nueva, mostró el estado y procesó las muestras locales
 sin depender del intérprete del proyecto. La salida de consola se fijó en UTF-8.
 
+La interfaz definitiva quedó conectada a `var/operacion` y permite recorrer el
+histórico consolidado, volver a una fecha concreta y seleccionar individualmente
+qué publicaciones con resumen se incluyen en el `.eml`. Se importaron los dos
+resúmenes humanos aprobados del 11/09/2026 para la prueba funcional. Se marcó sólo
+la Resolución 238/2026 y se comprobó que el correo preparado contiene una única
+publicación. La base registra el `.eml` como preparado y no enviado.
+
+La tarea de Windows `EPESF - Boletin Oficial` quedó instalada y habilitada. Su
+próxima ejecución está programada para el 15/09/2026 a las 05:30. Ejecutará el
+paquete portable contra `var/operacion`, consultará únicamente la fecha corriente
+y resumirá con Gemini sólo los resultados relevantes de ese día. Puede iniciar con
+la sesión bloqueada; el usuario debe permanecer conectado a Windows.
+
 ## Próximo trabajo
 
-1. Validar la apertura del `.eml` en los clientes instalados, integrar la
-   programación de Windows y convertir el paquete portable en un instalador.
-2. Revisar una muestra estratificada de los resultados históricos para ajustar las
-   reglas antes de resumir o comunicar el conjunto.
+1. Verificar el resultado real de la primera ejecución programada de las 05:30.
+2. Convertir el paquete portable en un instalador y definir la ubicación y retención
+   del respaldo institucional.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
 validación sobre un equipo Windows limpio continúa pendiente para la etapa del

@@ -13,8 +13,8 @@ La cabecera identifica la edición consultada y el resultado de la última ejecu
 Cuatro indicadores muestran el volumen registrado, la cantidad relevante, los
 documentos descargados y las fechas con fallas. Los filtros forman una sola franja
 antes de la lista documental. En el encabezado de resultados se agrupan la
-exportación y la preparación manual del correo; el botón indica cuántas
-publicaciones filtradas tienen un resumen listo.
+exportación y la preparación manual del correo. Cada registro listo ofrece una
+casilla y el botón genera el correo únicamente con la selección explícita.
 
 Cada publicación presenta fecha y tipo, organismo e identificación, clasificación
 con su fundamento y accesos al BORA o a los PDF locales. El resumen conceptual y la
@@ -32,7 +32,8 @@ descripción se despliegan cuando existen, manteniendo compacta la revisión ini
 
 ## Adaptación y accesibilidad
 
-En ventanas amplias, cada publicación usa cuatro columnas. Debajo de 1050 px se
+En ventanas amplias, cada publicación usa una columna breve de selección y cuatro
+columnas de contenido. Debajo de 1050 px se
 transforma en una secuencia vertical y los enlaces se agrupan en una línea. Los
 indicadores pasan de cuatro a dos columnas y, debajo de 360 px, a una. Todos los controles tienen
 etiqueta, foco visible y HTML nativo compatible con teclado. No se usan animaciones

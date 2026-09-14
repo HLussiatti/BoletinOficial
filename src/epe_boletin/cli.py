@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 from .bora import BoraClient
@@ -46,12 +46,9 @@ def parse_date(value: str) -> date:
         raise argparse.ArgumentTypeError("Use una fecha AAAA-MM-DD") from exc
 
 
-def daily_start(last_complete: date | None, today: date, overlap_days: int) -> date:
-    if overlap_days < 1:
-        raise ValueError("overlap_days debe ser al menos 1")
-    if last_complete is None:
-        return today
-    return min(last_complete, today) - timedelta(days=overlap_days - 1)
+def daily_start(today: date) -> date:
+    """El proceso diario consulta exclusivamente la edición de la fecha actual."""
+    return today
 
 
 def parser() -> argparse.ArgumentParser:
@@ -74,8 +71,6 @@ def parser() -> argparse.ArgumentParser:
                          help="Tiempo máximo por intento HTTP, en segundos")
     execute.add_argument("--max-attempts", type=int, default=3,
                          help="Cantidad máxima de intentos HTTP")
-    execute.add_argument("--overlap-days", type=int, default=7,
-                         help="Días a revisar nuevamente en el modo diario")
     commands.add_parser("status", help="Mostrar el último estado operativo")
     commands.add_parser(
         "structure-documents",
@@ -93,6 +88,10 @@ def parser() -> argparse.ArgumentParser:
         help="Proveedor del modelo (por defecto: gemini)",
     )
     summarize.add_argument("--max-items", type=int)
+    summarize.add_argument(
+        "--date", type=parse_date,
+        help="Resumir solamente las publicaciones de esta fecha",
+    )
     summarize.add_argument("--api-key-env",
                            help="Variable de entorno que contiene la credencial")
     import_summaries = commands.add_parser(
@@ -216,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         completed = failed = 0
         for candidate in database.summary_candidates(
-            model, PROMPT_VERSION, args.max_items
+            model, PROMPT_VERSION, args.max_items, publication_date=args.date
         ):
             try:
                 summary = summarizer.summarize(candidate)
@@ -329,12 +328,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not issues else 2
 
     today = date.today()
-    if args.overlap_days < 1:
-        parser().error("--overlap-days debe ser al menos 1")
     if args.mode == "daily" and args.date_from is None:
-        database.migrate()
-        last_complete = database.last_complete_date()
-        date_from = daily_start(last_complete, today, args.overlap_days)
+        date_from = daily_start(today)
         date_to = args.date_to or today
     else:
         date_from = args.date_from or today

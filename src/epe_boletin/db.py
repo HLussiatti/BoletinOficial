@@ -463,14 +463,18 @@ class Database:
 
     def summary_candidates(self, model: str, prompt_version: str,
                            limit: int | None = None,
-                           include_completed: bool = False) -> list[SummaryCandidate]:
+                           include_completed: bool = False,
+                           publication_date: date | None = None) -> list[SummaryCandidate]:
         with self.connect() as connection:
-            publications = connection.execute("""
+            date_clause = " AND publication_date=?" if publication_date else ""
+            parameters = (publication_date.isoformat(),) if publication_date else ()
+            publications = connection.execute(f"""
                 SELECT * FROM publications
                 WHERE relevance IN ('direct_epesf','potential_sector_impact')
                   AND document_status='downloaded'
+                  {date_clause}
                 ORDER BY publication_date,id
-            """).fetchall()
+            """, parameters).fetchall()
             results: list[SummaryCandidate] = []
             for publication in publications:
                 documents = connection.execute("""

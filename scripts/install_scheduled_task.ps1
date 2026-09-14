@@ -3,7 +3,7 @@ param(
     [string]$InstallDir,
     [Parameter(Mandatory = $true)]
     [string]$DataDir,
-    [string]$TaskName = "EPESF - Boletín Oficial",
+    [string]$TaskName = "EPESF - Boletin Oficial",
     [string]$StartTime = "05:30"
 )
 
@@ -19,7 +19,8 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $arguments
                                   -WorkingDirectory $InstallDir
 $trigger = New-ScheduledTaskTrigger -Daily -At $StartTime
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable `
-    -WakeToRun -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+    -WakeToRun -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+    -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 2)
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
     -Settings $settings -Description "Seguimiento diario del BORA para EPESF" -Force
