@@ -16,7 +16,9 @@ from .mail import build_email_batches
 from .pipeline import run
 from .relevance import DEFAULT_RULES, classify, load_rules
 from .summaries import (
+    DEFAULT_SUMMARY_PROVIDER,
     DEFAULT_SUMMARY_MODEL,
+    GeminiSummarizer,
     PROMPT_VERSION,
     ConceptualSummary,
     OpenAISummarizer,
@@ -86,8 +88,12 @@ def parser() -> argparse.ArgumentParser:
         "summarize", help="Generar resúmenes conceptuales pendientes mediante API"
     )
     summarize.add_argument("--model", help="Modelo configurado para los resúmenes")
+    summarize.add_argument(
+        "--provider", choices=("gemini", "openai"),
+        help="Proveedor del modelo (por defecto: gemini)",
+    )
     summarize.add_argument("--max-items", type=int)
-    summarize.add_argument("--api-key-env", default="OPENAI_API_KEY",
+    summarize.add_argument("--api-key-env",
                            help="Variable de entorno que contiene la credencial")
     import_summaries = commands.add_parser(
         "import-summaries", help="Importar resúmenes revisados desde un JSON"
@@ -191,10 +197,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "summarize":
         database.migrate()
-        model = args.model or os.environ.get("EPE_OPENAI_MODEL", DEFAULT_SUMMARY_MODEL)
-        api_key = os.environ.get(args.api_key_env, "")
+        provider = args.provider or os.environ.get(
+            "EPE_SUMMARY_PROVIDER", DEFAULT_SUMMARY_PROVIDER
+        )
+        default_model = DEFAULT_SUMMARY_MODEL if provider == "gemini" else "gpt-5.6-terra"
+        model = args.model or os.environ.get("EPE_SUMMARY_MODEL", default_model)
+        api_key_env = args.api_key_env or (
+            "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
+        )
+        api_key = os.environ.get(api_key_env, "")
         try:
-            summarizer = OpenAISummarizer(api_key, model)
+            summarizer = (
+                GeminiSummarizer(api_key, model) if provider == "gemini"
+                else OpenAISummarizer(api_key, model)
+            )
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
@@ -212,7 +228,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 failed += 1
         print(json.dumps({"completed": completed, "failed": failed,
-                          "model": model, "prompt_version": PROMPT_VERSION},
+                          "provider": provider, "model": model,
+                          "prompt_version": PROMPT_VERSION},
                          ensure_ascii=False, indent=2))
         return 0 if not failed else 2
     if args.command == "import-summaries":

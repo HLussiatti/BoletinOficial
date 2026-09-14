@@ -15,12 +15,16 @@ class SettingsTest(unittest.TestCase):
         issues = readiness_issues(settings, {})
         self.assertIn("Falta definir notification_start_date", issues)
         self.assertNotIn("Falta definir summary.model", issues)
-        self.assertEqual("gpt-5.6-terra", settings.summary.model)
+        self.assertEqual("gemini", settings.summary.provider)
+        self.assertEqual("gemini-3.5-flash-lite", settings.summary.model)
 
     def test_complete_configuration_is_ready_without_exposing_secrets(self):
         payload = {
             "notification_start_date": "2026-09-12",
-            "summary": {"model": "configured-model", "api_key_env": "SUMMARY_KEY"},
+            "summary": {
+                "provider": "gemini", "model": "configured-model",
+                "api_key_env": "SUMMARY_KEY",
+            },
             "email": {"max_mb": 20},
             "schedule_time": "05:30",
         }

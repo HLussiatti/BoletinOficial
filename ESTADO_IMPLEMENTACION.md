@@ -87,10 +87,18 @@ publicaciones y tres adjuntos. No se realizó ningún envío.
 El correo preparado quedó vinculado a ambas publicaciones en la base mediante el
 `Message-ID` `<epesf-20260911-1-9b41210fd84100b9@localhost>`.
 
-El diagnóstico actual identifica como pendientes la fecha de corte de
-notificaciones y la clave del servicio de resumen. El modelo predeterminado quedó
-definido como `gpt-5.6-terra`. La salida UTF-8 se verificó también mediante el
-comando instalado en el entorno virtual.
+El 14 de septiembre se validó también la generación automática con una clave del
+nivel gratuito de Gemini. `gemini-3.5-flash-lite` completó las Resoluciones 238/2026
+y 239/2026 y sus resultados se compararon con los resúmenes humanos aprobados. En
+ambos casos identificó correctamente que el texto no impone una obligación directa
+a EPESF y mantuvo la marca de revisión. Registró 2.440/257 tokens de entrada/salida
+para la Resolución 238 y 1.714/198 para la 239. La clave se conserva fuera del
+repositorio. El modelo predeterminado quedó definido como
+`gemini-3.5-flash-lite`; las solicitudes usan salida estructurada y `store=false`.
+
+El diagnóstico actual mantiene pendiente únicamente la fecha de corte de
+notificaciones. La salida UTF-8 se verificó también mediante el comando instalado
+en el entorno virtual.
 
 El respaldo de la validación contiene la base, los cinco PDF y la configuración de
 reglas. Se verificaron las siete huellas del manifiesto contra el contenido del ZIP.
@@ -103,10 +111,9 @@ sin depender del intérprete del proyecto. La salida de consola se fijó en UTF-
 
 ## Próximo trabajo
 
-1. Validar el resumen automático con una credencial de API.
-2. Validar la apertura del `.eml` en los clientes instalados, integrar la
+1. Validar la apertura del `.eml` en los clientes instalados, integrar la
    programación de Windows y convertir el paquete portable en un instalador.
-3. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
+2. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
 validación sobre un equipo Windows limpio continúa pendiente para la etapa del

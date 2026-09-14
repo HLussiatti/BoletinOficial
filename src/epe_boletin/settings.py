@@ -10,6 +10,7 @@ from typing import Mapping
 
 @dataclass(frozen=True, slots=True)
 class SummarySettings:
+    provider: str
     model: str
     api_key_env: str
 
@@ -36,8 +37,9 @@ def load_operation_settings(path: Path) -> OperationSettings:
         settings = OperationSettings(
             notification_start_date=date.fromisoformat(start) if start else None,
             summary=SummarySettings(
+                provider=str(summary.get("provider", "gemini")).strip().lower(),
                 model=str(summary.get("model", "")).strip(),
-                api_key_env=str(summary.get("api_key_env", "OPENAI_API_KEY")).strip(),
+                api_key_env=str(summary.get("api_key_env", "GEMINI_API_KEY")).strip(),
             ),
             email=EmailSettings(
                 max_mb=float(email.get("max_mb", 20)),
@@ -56,11 +58,13 @@ def readiness_issues(settings: OperationSettings,
         issues.append("Falta definir notification_start_date")
     if not settings.summary.model:
         issues.append("Falta definir summary.model")
+    if settings.summary.provider not in {"gemini", "openai"}:
+        issues.append("summary.provider debe ser gemini u openai")
     if not settings.summary.api_key_env or not environment.get(
         settings.summary.api_key_env
     ):
         issues.append(
-            f"Falta la variable de entorno {settings.summary.api_key_env or 'OPENAI_API_KEY'}"
+            f"Falta la variable de entorno {settings.summary.api_key_env or 'GEMINI_API_KEY'}"
         )
     if settings.email.max_mb <= 0:
         issues.append("email.max_mb debe ser positivo")

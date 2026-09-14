@@ -90,7 +90,7 @@ Las leyes no siempre presentan considerandos y otros actos usan `DECRETA`, `DISP
 
 El modelo recibirá el documento como fuente de datos y no ejecutará instrucciones contenidas en él. Se exigirá una salida estructurada para validar identificación, referencias y campos numéricos. La explicación sobre EPESF distinguirá lo expresamente establecido de las inferencias que requieren evaluación del área responsable. Se versionarán las reglas y el modelo para poder reproducir y comparar resultados.
 
-Se adopta la Responses API de OpenAI con `gpt-5.6-terra` como modelo inicial por su equilibrio entre calidad y costo para trabajo profesional. La salida es estructurada, las solicitudes usan `store=false` y el modelo sigue siendo configurable. La credencial de API se mantiene fuera del repositorio. Antes del procesamiento histórico masivo se medirá una muestra y se estimará el consumo total; se aplicarán límites configurables y reanudación por lotes. Un modelo local podrá evaluarse más adelante como proveedor alternativo, después de medir hardware, calidad y tamaño de instalación.
+Se adopta la Interactions API de Gemini con `gemini-3.5-flash-lite` como modelo inicial en el nivel gratuito. La salida es estructurada, las solicitudes usan `store=false` y el modelo sigue siendo configurable. La credencial de API se mantiene fuera del repositorio. Los resultados que infieran una incidencia sin que la norma nombre expresamente a EPESF quedan sujetos a revisión humana. Antes del procesamiento histórico masivo se medirá una muestra y se estimará el consumo total; se aplicarán límites configurables y reanudación por lotes. OpenAI queda como proveedor opcional y un modelo local podrá evaluarse más adelante.
 
 El correo tendrá fecha, cantidad de novedades y una ficha por norma. Adjuntará los PDF y anexos disponibles e incluirá una versión legible de las fichas en el cuerpo. El tamaño total se medirá al generar el archivo; si excede el límite configurado, se dividirá en `.eml` numerados, manteniendo la correspondencia entre fichas y adjuntos.
 
@@ -185,7 +185,7 @@ El repositorio versionará código, pruebas, documentación, configuración de e
 | Infraestructura | Operación local en esta máquina; instalador para otras computadoras Windows. | Confirmado; verificar energía, conexión y sesión. |
 | Horario | Antes de las 06:00; propuesta inicial 05:30, hora de Buenos Aires. | Franja confirmada; ajuste según piloto. |
 | Ausencia de novedades y fallos | Propuesta: registrar todas las ejecuciones, correo al grupo sólo con novedades y fallos persistentes al responsable operativo. | Política y contacto por precisar. |
-| Servicio de resumen | Responses API con `gpt-5.6-terra`, salida estructurada y `store=false`. Obtener credencial de API y configurar límites de consumo. | Modelo definido; credencial y validación real pendientes. |
+| Servicio de resumen | Interactions API con `gemini-3.5-flash-lite`, salida estructurada y `store=false`; OpenAI queda opcional. | Credencial gratuita creada; dos resoluciones reales resumidas y comparadas con la revisión humana. |
 | Validación | Desde el 01/01/2025 inclusive hasta la fecha de ejecución. | Confirmado. |
 | Inicio del correo diario | Definir el corte al activar producción, separándolo de la carga histórica. | Se establece en la puesta en marcha. |
 | Custodia | Precisar responsable, carpeta de datos, retención y destino de respaldos. | Datos operativos por completar. |

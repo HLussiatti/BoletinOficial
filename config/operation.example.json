@@ -1,8 +1,9 @@
 {
   "notification_start_date": null,
   "summary": {
-    "model": "gpt-5.6-terra",
-    "api_key_env": "OPENAI_API_KEY"
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "api_key_env": "GEMINI_API_KEY"
   },
   "email": {
     "max_mb": 20

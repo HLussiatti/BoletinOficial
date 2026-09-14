@@ -76,7 +76,7 @@ realizan envíos automáticos.
 ## Diagnóstico de configuración
 
 Se copia `config\operation.example.json` a una ubicación operativa y se completan
-los valores institucionales. La clave de OpenAI permanece en la variable indicada
+los valores institucionales. La clave de Gemini permanece en la variable indicada
 por `api_key_env`.
 
 ```powershell

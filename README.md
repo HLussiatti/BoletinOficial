@@ -79,14 +79,15 @@ sin enviarlo:
   --date 2026-09-11 --output var\outbox\boletin_2026_09_11.eml
 ```
 
-La generación automática usa la Responses API con una salida JSON estructurada y
-`store=false`. El modelo predeterminado es `gpt-5.6-terra`; puede sustituirse con
-`--model` o `EPE_OPENAI_MODEL`. La clave se lee de `OPENAI_API_KEY`; ninguna
-credencial se guarda en el repositorio. La
-referencia técnica es la [documentación oficial de Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
+La generación automática usa la Interactions API de Gemini con una salida JSON
+estructurada y `store=false`. El modelo predeterminado es
+`gemini-3.5-flash-lite`; puede sustituirse con `--model` o `EPE_SUMMARY_MODEL`. La clave se lee de
+`GEMINI_API_KEY`; ninguna credencial se guarda en el repositorio. OpenAI permanece
+disponible mediante `--provider openai`. La referencia técnica es la
+[documentación oficial de Interactions](https://ai.google.dev/api/interactions-api).
 
 ```powershell
-$env:OPENAI_API_KEY = "..."
+$env:GEMINI_API_KEY = "..."
 .\.venv\Scripts\epe-boletin.exe --data-dir var summarize --max-items 2
 ```
 

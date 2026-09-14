@@ -13,3 +13,4 @@ build/
 *.egg-info/
 *.spec
 api_key.txt
+gemini_api_key.txt

@@ -48,8 +48,8 @@ Node.js ni alojamiento público.
   correo vacío.
 - La aplicación no envía correos automáticamente. Genera un `.eml` sin remitente ni
   destinatarios; una persona completa esos campos, revisa y envía desde su cliente.
-- El modelo inicial para los resúmenes es `gpt-5.6-terra` mediante la Responses API,
-  con credencial y consumo de API separados de ChatGPT.
+- El modelo inicial para los resúmenes es `gemini-3.5-flash-lite` mediante la
+  Interactions API de Gemini, en su nivel gratuito y con salida JSON estructurada.
 
 ## Evidencia disponible
 
