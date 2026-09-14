@@ -280,9 +280,11 @@ def render_page(app: WebApplication, query: Query) -> bytes:
                 f'<label><input type="checkbox" name="selected" '
                 f'value="{publication_id}"> Incluir</label>'
             )
-        else:
-            reason = "Elegí una fecha" if not query.day else "Sin resumen"
+        elif query.day:
+            reason = "Sin resumen"
             picker = f'<label title="{reason}"><input type="checkbox" disabled> {reason}</label>'
+        else:
+            picker = '<span class="context" aria-label="Elegí una fecha para incluir esta publicación">—</span>'
         rows_html.append(f"""
           <article class="row">
             <div class="pick">{picker}</div>
