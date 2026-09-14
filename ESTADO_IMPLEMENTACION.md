@@ -1,6 +1,6 @@
 # Estado de implementación
 
-Actualizado el 11 de septiembre de 2026. Rama de trabajo:
+Actualizado el 14 de septiembre de 2026. Rama de trabajo:
 `codex/base-recoleccion-bora`.
 
 ## Hito actual
@@ -47,6 +47,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   x64, con ejecutable, reglas, scripts y manuales.
 - descubrimiento, descarga y almacenamiento separado de anexos;
 - consulta de estado y exportación CSV;
+- interfaz de consulta en navegador, servida exclusivamente en `127.0.0.1`, con
+  estado diario, filtros, exportación de la vista y apertura segura de PDF;
 - pruebas locales sin red sobre la edición del 29/05/2025.
 - pruebas de edición ausente, respuestas HTTP transitorias, agotamiento de
   reintentos y rechazo de PDF inválidos.
@@ -63,6 +65,13 @@ y un anexo para evaluar el texto completo, y quedaron seleccionadas las
 Resoluciones 238/2026 y 239/2026. Los dos avisos fueron descartados con la regla de
 negocio ajustada. Una ejecución posterior no volvió a descargar archivos. El
 detalle está en `VALIDACION_2026-09-11.md`.
+
+El 14 de septiembre de 2026 se ejecutó una segunda validación real. Se recorrieron
+74 publicaciones, se revisó un aviso de la Subsecretaría de Energía Eléctrica y se
+descartó correctamente por no identificar vínculo con EPESF o Santa Fe. La
+Resolución 1544/2026 del Ministerio de Economía se controló manualmente para evitar
+un falso negativo y resultó ajena al sector. El resultado sin novedades relevantes
+fue validado por el usuario; la repetición no duplicó datos ni archivos.
 
 La base de esa validación se migró al esquema 4. La reclasificación con las reglas
 `2026-09-11.1` mantuvo exactamente 89 publicaciones descartadas y las Resoluciones
@@ -93,11 +102,10 @@ sin depender del intérprete del proyecto. La salida de consola se fijó en UTF-
 
 ## Próximo trabajo
 
-1. Construir la interfaz local de consulta, filtros, detalle y apertura de PDF.
-2. Validar el resumen automático con una credencial y un modelo habilitado.
-3. Integrar el correo institucional, la programación de Windows y convertir el
+1. Validar el resumen automático con una credencial y un modelo habilitado.
+2. Integrar el correo institucional, la programación de Windows y convertir el
    paquete portable en un instalador.
-4. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
+3. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
 validación sobre un equipo Windows limpio continúa pendiente para la etapa del

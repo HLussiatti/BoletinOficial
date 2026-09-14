@@ -34,6 +34,17 @@ se ajusta con `--overlap-days`. Los resultados se consultan y exportan con:
   --rules config\relevance_rules.json reclassify
 ```
 
+La interfaz de consulta local se inicia con:
+
+```powershell
+.\.venv\Scripts\epe-boletin.exe --data-dir var serve
+```
+
+El comando abre el navegador predeterminado y mantiene el servicio exclusivamente
+en `127.0.0.1`. La pantalla muestra el estado de la última ejecución, permite
+filtrar por fecha, relevancia y texto, abre los PDF registrados y exporta solamente
+la vista filtrada. Se cierra con `Ctrl+C` en la ventana desde la que se inició.
+
 El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene las
 publicaciones seleccionadas o pendientes de revisión. La opción `--all` incorpora
 también los metadatos descartados y se reserva para controles de cobertura.

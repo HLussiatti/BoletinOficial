@@ -22,6 +22,7 @@ from .summaries import (
     OpenAISummarizer,
 )
 from .settings import load_operation_settings, readiness_issues
+from .web import serve
 
 
 def configure_logging(data_dir: Path) -> Path:
@@ -128,6 +129,10 @@ def parser() -> argparse.ArgumentParser:
     export.add_argument("destination", type=Path)
     export.add_argument("--all", action="store_true",
                         help="Incluir también las publicaciones descartadas")
+    web = commands.add_parser("serve", help="Abrir la interfaz local en el navegador")
+    web.add_argument("--port", type=int, default=8765)
+    web.add_argument("--no-open", action="store_true",
+                     help="Iniciar el servicio sin abrir el navegador")
     return result
 
 
@@ -149,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
         database.migrate()
         count = database.export_csv(args.destination, include_all=args.all)
         print(f"Exportados {count} registros a {args.destination}")
+        return 0
+    if args.command == "serve":
+        serve(database, args.data_dir, args.port, open_browser=not args.no_open)
         return 0
     if args.command == "structure-documents":
         database.migrate()

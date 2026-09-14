@@ -23,6 +23,7 @@ $scriptDestination = Join-Path $package "scripts"
 New-Item -ItemType Directory -Path $scriptDestination -Force | Out-Null
 Copy-Item -LiteralPath "scripts\run_daily.ps1" -Destination $scriptDestination
 Copy-Item -LiteralPath "scripts\install_scheduled_task.ps1" -Destination $scriptDestination
+Copy-Item -LiteralPath "scripts\run_ui.ps1" -Destination $scriptDestination
 Copy-Item -LiteralPath "README.md" -Destination $package
 Copy-Item -LiteralPath "OPERACION_WINDOWS.md" -Destination $package
 

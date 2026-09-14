@@ -22,6 +22,7 @@ El script crea `dist\epe-boletin` y el archivo
 - `epe-boletin.exe` y sus bibliotecas privadas;
 - la configuración versionada de relevancia;
 - los scripts de ejecución y programación diaria;
+- el script `run_ui.ps1` para abrir la interfaz local;
 - los manuales de uso y operación.
 
 `build`, `dist` y el archivo `.spec` generado quedan fuera de Git. Cada versión debe
@@ -36,8 +37,8 @@ La versión 0.1.0 se extrajo en una carpeta aislada y se comprobó que el ejecut
 2. crea una base SQLite nueva;
 3. informa correctamente un estado vacío;
 4. procesa las muestras del 29 y 30 de mayo de 2025, con 153 publicaciones y el
-   suplemento identificado.
+   suplemento identificado;
+5. inicia la interfaz local, consulta una base real y exporta la vista filtrada.
 
-Esta construcción es el núcleo portable. La interfaz y el instalador con accesos
-directos se incorporarán cuando se confirme si la consulta se abrirá en el
-navegador local o en una ventana nativa.
+Esta construcción incluye la interfaz en navegador local. El instalador con acceso
+directo continúa como siguiente etapa de distribución.
