@@ -1,5 +1,5 @@
 {
-  "version": "2026-09-11.1",
+  "version": "2026-09-14.1",
   "direct_terms": [
     "EPESF",
     "E.P.E.",
@@ -11,7 +11,10 @@
     "CAMMESA",
     "Ente Nacional Regulador de la Electricidad",
     "generación distribuida",
-    "Subsecretaría de Energía Eléctrica"
+    "Subsecretaría de Energía Eléctrica",
+    "Subsidios Energéticos Focalizados",
+    "Subsecretaría de Transición y Planeamiento Energético",
+    "Emergencia del Sector Energético Nacional"
   ],
   "electric_terms": [
     "electricidad",

@@ -20,7 +20,7 @@ class RelevanceRules:
 
 
 DEFAULT_RULES = RelevanceRules(
-    version="builtin-2026-09-11.1",
+    version="builtin-2026-09-14.1",
     direct_terms=(
         "epesf", "e.p.e.", "empresa provincial de la energia de santa fe",
     ),
@@ -28,6 +28,9 @@ DEFAULT_RULES = RelevanceRules(
         "energia electrica", "mercado electrico mayorista", "cammesa",
         "ente nacional regulador de la electricidad", "generacion distribuida",
         "subsecretaria de energia electrica",
+        "subsidios energeticos focalizados",
+        "subsecretaria de transicion y planeamiento energetico",
+        "emergencia del sector energetico nacional",
     ),
     electric_terms=("electricidad", "electrica", "electrico"),
     activity_terms=(

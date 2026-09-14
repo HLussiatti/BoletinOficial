@@ -182,16 +182,16 @@ def main(argv: list[str] | None = None) -> int:
         rules = load_rules(args.rules) if args.rules else DEFAULT_RULES
         counts: dict[str, int] = {}
         processed = 0
+        updates: list[tuple[str, str, str, str, int]] = []
         for publication_id, publication, full_text in (
             database.publications_for_reclassification()
         ):
             relevance, reason = classify(publication, full_text, rules)
             status = "full_text" if full_text else "metadata_only"
-            database.update_classification(
-                publication_id, relevance, reason, status, rules.version
-            )
+            updates.append((relevance, reason, status, rules.version, publication_id))
             counts[relevance] = counts.get(relevance, 0) + 1
             processed += 1
+        database.update_classifications(updates)
         print(json.dumps({"processed": processed, "rules_version": rules.version,
                           "results": counts}, ensure_ascii=False, indent=2))
         return 0

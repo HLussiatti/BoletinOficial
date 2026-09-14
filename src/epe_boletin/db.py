@@ -415,6 +415,17 @@ class Database:
                     classification_status=?,relevance_rules_version=? WHERE id=?
             """, (relevance, reason, status, rules_version, publication_id))
 
+    def update_classifications(
+        self, updates: list[tuple[str, str, str, str, int]]
+    ) -> None:
+        if not updates:
+            return
+        with self.connect() as connection:
+            connection.executemany("""
+                UPDATE publications SET relevance=?, relevance_reason=?,
+                    classification_status=?,relevance_rules_version=? WHERE id=?
+            """, updates)
+
     def publications_for_reclassification(
         self,
     ) -> list[tuple[int, Publication, str]]:

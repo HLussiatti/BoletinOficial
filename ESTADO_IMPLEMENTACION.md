@@ -78,12 +78,23 @@ Ese mismo día se completó la recolección histórica acordada desde el 01/11/2
 hasta el 14/09/2026, dividida en doce lotes reanudables. Los 318 días tienen
 cobertura: 209 ediciones completas y 109 días sin publicación, sin consultas
 fallidas. La base operativa contiene 13.258 publicaciones; las reglas dejaron 26
-casos con mención directa a EPESF, 565 de impacto sectorial potencial y 42 que
-requieren revisión. Se descargaron 1.294 PDF y anexos correspondientes a 709
-publicaciones, con un tamaño total de 336,85 MB. Todos los archivos tienen
+casos con mención directa a EPESF, 573 de impacto sectorial potencial y 42 que
+requieren revisión. Se descargaron 1.308 PDF y anexos correspondientes a 717
+publicaciones, con un tamaño total de 339,91 MB. Todos los archivos tienen
 extracción completa, coinciden con su tamaño y huella registrados y respetan la
 nomenclatura acordada. La carpeta no contiene CSV ni resúmenes automáticos y no se
 utilizó Gemini. Los datos operativos permanecen en `var/operacion`, fuera de Git.
+
+La comparación posterior contra los 79 PDF aportados por el usuario agrupó 37
+publicaciones relevantes. La versión inicial detectaba 32 (86,5 %). Se incorporaron
+tres señales de metadatos para Subsidios Energéticos Focalizados, la Subsecretaría
+de Transición y Planeamiento Energético y la emergencia del Sector Energético
+Nacional. Con las reglas `2026-09-14.1`, las 37 publicaciones quedaron detectadas
+(100 % sobre este conjunto positivo) y se descargaron los documentos que faltaban.
+La corrección agregó ocho candidatos en las 13.258 publicaciones: los cinco casos
+omitidos y tres normas similares para revisión. El conjunto no permite medir
+precisión porque no contiene una selección exhaustiva de negativos. El detalle se
+encuentra en `VALIDACION_USUARIO_2025-11_A_2026-09.md`.
 
 La base de esa validación se migró al esquema 4. La reclasificación con las reglas
 `2026-09-11.1` mantuvo exactamente 89 publicaciones descartadas y las Resoluciones
