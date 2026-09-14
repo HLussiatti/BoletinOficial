@@ -48,9 +48,8 @@ realizados, el resultado esperado para el día es **sin novedades relevantes**.
 - La restauración conservó 74 publicaciones y 1 documento registrado.
 - La suite automatizada terminó con 30 pruebas aprobadas.
 
-## Validación funcional pendiente
+## Validación funcional
 
-El resultado debe compararse con el relevamiento humano del 14/09/2026. Si ese
-relevamiento contiene una norma eléctrica que aquí no fue seleccionada, su
-organismo, tipo y número permitirán reproducir el falso negativo y ajustar la
-regla de preselección.
+El resultado fue comparado con el relevamiento humano del 14/09/2026 y quedó
+validado por el usuario. La selección, los descartes y el resultado sin novedades
+relevantes se consideran correctos para esta edición.
