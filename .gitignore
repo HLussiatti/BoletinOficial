@@ -12,3 +12,4 @@ dist/
 build/
 *.egg-info/
 *.spec
+api_key.txt
