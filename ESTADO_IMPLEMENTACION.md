@@ -32,7 +32,8 @@ La base correspondiente a la etapa 1 está implementada y se inició la etapa 2:
   PDF y anexos, y división automática por límite de tamaño;
 - registro idempotente de los correos preparados mediante `Message-ID`, vínculo con
   las publicaciones y estados preparado, enviado, error o resultado incierto;
-- transporte SMTP configurable y probado mediante dobles locales, sin envíos reales;
+- preparación manual del correo desde la vista filtrada, sin transporte SMTP ni
+  envío automático;
 - configuración operativa externa y diagnóstico de preparación, sin credenciales
   persistidas ni valores secretos mostrados en la salida;
 - recuperación diaria desde la última cobertura completa, con siete días de
@@ -87,8 +88,8 @@ El correo preparado quedó vinculado a ambas publicaciones en la base mediante e
 `Message-ID` `<epesf-20260911-1-9b41210fd84100b9@localhost>`.
 
 El diagnóstico actual identifica como pendientes la fecha de corte de
-notificaciones, el modelo y la clave del servicio de resumen, el remitente, los
-destinatarios y el servidor SMTP. La salida UTF-8 se verificó también mediante el
+notificaciones y la clave del servicio de resumen. El modelo predeterminado quedó
+definido como `gpt-5.6-terra`. La salida UTF-8 se verificó también mediante el
 comando instalado en el entorno virtual.
 
 El respaldo de la validación contiene la base, los cinco PDF y la configuración de
@@ -102,9 +103,9 @@ sin depender del intérprete del proyecto. La salida de consola se fijó en UTF-
 
 ## Próximo trabajo
 
-1. Validar el resumen automático con una credencial y un modelo habilitado.
-2. Integrar el correo institucional, la programación de Windows y convertir el
-   paquete portable en un instalador.
+1. Validar el resumen automático con una credencial de API.
+2. Validar la apertura del `.eml` en los clientes instalados, integrar la
+   programación de Windows y convertir el paquete portable en un instalador.
 3. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La

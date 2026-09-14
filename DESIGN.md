@@ -12,7 +12,9 @@ trazabilidad por encima de elementos decorativos.
 La cabecera identifica la edición consultada y el resultado de la última ejecución.
 Cuatro indicadores muestran el volumen registrado, la cantidad relevante, los
 documentos descargados y las fechas con fallas. Los filtros forman una sola franja
-antes de la lista documental.
+antes de la lista documental. En el encabezado de resultados se agrupan la
+exportación y la preparación manual del correo; el botón indica cuántas
+publicaciones filtradas tienen un resumen listo.
 
 Cada publicación presenta fecha y tipo, organismo e identificación, clasificación
 con su fundamento y accesos al BORA o a los PDF locales. El resumen conceptual y la

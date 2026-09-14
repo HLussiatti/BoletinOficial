@@ -543,9 +543,18 @@ class Database:
                 (candidate.publication_id,),
             )
 
-    def bulletin_items(self, day: date) -> list[BulletinItem]:
+    def bulletin_items(self, day: date,
+                       publication_ids: tuple[int, ...] | None = None) -> list[BulletinItem]:
+        if publication_ids == ():
+            return []
+        id_clause = ""
+        parameters: list[object] = [day.isoformat()]
+        if publication_ids is not None:
+            placeholders = ",".join("?" for _ in publication_ids)
+            id_clause = f" AND p.id IN ({placeholders})"
+            parameters.extend(publication_ids)
         with self.connect() as connection:
-            rows = connection.execute("""
+            rows = connection.execute(f"""
                 SELECT p.id,p.source_id,p.title,p.agency,p.publication_date,p.detail_url,
                        s.conceptual_summary,s.epesf_relationship,s.effective_date
                 FROM publications p
@@ -556,8 +565,9 @@ class Database:
                 )
                 WHERE p.publication_date=?
                   AND p.relevance IN ('direct_epesf','potential_sector_impact')
+                  {id_clause}
                 ORDER BY p.agency,p.title
-            """, (day.isoformat(),)).fetchall()
+            """, parameters).fetchall()
             results: list[BulletinItem] = []
             for row in rows:
                 documents = connection.execute("""

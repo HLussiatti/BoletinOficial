@@ -1,20 +1,11 @@
 {
   "notification_start_date": null,
   "summary": {
-    "model": "",
+    "model": "gpt-5.6-terra",
     "api_key_env": "OPENAI_API_KEY"
   },
   "email": {
-    "sender": "",
-    "recipients": [],
-    "max_mb": 20,
-    "smtp": {
-      "host": "",
-      "port": 587,
-      "username": "",
-      "password_env": "EPE_SMTP_PASSWORD",
-      "security": "starttls"
-    }
+    "max_mb": 20
   },
   "schedule_time": "05:30"
 }

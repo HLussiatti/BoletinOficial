@@ -30,6 +30,7 @@ Node.js ni alojamiento público.
 - Abrir el aviso oficial, el PDF principal y sus anexos.
 - Identificar documentos, resúmenes o entregas con errores pendientes.
 - Exportar el conjunto filtrado cuando haga falta un control adicional.
+- Preparar un `.eml` con el conjunto filtrado y abrirlo en el correo predeterminado.
 
 ## Reglas y decisiones confirmadas
 
@@ -45,8 +46,10 @@ Node.js ni alojamiento público.
   descartan, aunque pueden descargarse inicialmente para evaluar su texto.
 - Una edición sin publicaciones relevantes es un resultado válido y no genera un
   correo vacío.
-- El envío de correo y la instalación de la tarea programada requieren la
-  configuración institucional correspondiente.
+- La aplicación no envía correos automáticamente. Genera un `.eml` sin remitente ni
+  destinatarios; una persona completa esos campos, revisa y envía desde su cliente.
+- El modelo inicial para los resúmenes es `gpt-5.6-terra` mediante la Responses API,
+  con credencial y consumo de API separados de ChatGPT.
 
 ## Evidencia disponible
 

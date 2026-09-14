@@ -4,16 +4,19 @@ import csv
 import html
 import io
 import json
+import os
 import threading
 import webbrowser
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Callable
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from .db import Database
+from .mail import EmailArtifact, build_email_batches
 
 
 STATUS_LABELS = {
@@ -51,21 +54,33 @@ class Query:
     day: str = ""
     relevance: str = "active"
     text: str = ""
+    email_status: str = ""
+    email_items: int = 0
+    email_files: int = 0
+    email_error: str = ""
 
     @classmethod
     def from_url(cls, query: str) -> "Query":
         values = parse_qs(query)
+        item_value = values.get("items", ["0"])[0]
+        file_value = values.get("files", ["0"])[0]
         return cls(
             day=values.get("date", [""])[0].strip(),
             relevance=values.get("relevance", ["active"])[0].strip(),
             text=values.get("q", [""])[0].strip(),
+            email_status=values.get("email", [""])[0].strip(),
+            email_items=int(item_value) if item_value.isdigit() else 0,
+            email_files=int(file_value) if file_value.isdigit() else 0,
+            email_error=values.get("email_error", [""])[0].strip(),
         )
 
 
 class WebApplication:
-    def __init__(self, database: Database, data_dir: Path):
+    def __init__(self, database: Database, data_dir: Path,
+                 email_opener: Callable[[Path], None] | None = None):
         self.database = database
         self.data_dir = data_dir.resolve()
+        self.email_opener = email_opener or open_eml
 
     def publications(self, query: Query) -> list[dict[str, object]]:
         clauses: list[str] = []
@@ -158,12 +173,41 @@ class WebApplication:
             return None
         return path, str(row["kind"])
 
+    def email_items(self, query: Query):
+        if not query.day:
+            return []
+        selected_ids = tuple(int(row["id"]) for row in self.publications(query))
+        return self.database.bulletin_items(date.fromisoformat(query.day), selected_ids)
+
+    def prepare_email(self, query: Query) -> list[EmailArtifact]:
+        try:
+            day = date.fromisoformat(query.day)
+        except ValueError as exc:
+            raise ValueError("Elegí una fecha válida para preparar el correo") from exc
+        items = self.email_items(query)
+        output = self.data_dir / "outbox" / f"boletin_{day:%Y_%m_%d}.eml"
+        artifacts = build_email_batches(items, day, output)
+        for index, artifact in enumerate(artifacts, 1):
+            self.database.record_prepared_delivery(
+                day, artifact, (), index, len(artifacts)
+            )
+            self.email_opener(artifact.path.resolve())
+        return artifacts
+
+
+def open_eml(path: Path) -> None:
+    if os.name == "nt":
+        os.startfile(str(path), "open")  # type: ignore[attr-defined]
+        return
+    webbrowser.open(path.as_uri())
+
 
 CSS = """
 :root{--ink:#171715;--paper:#f5f2eb;--panel:#fffdf8;--muted:#66645f;--line:#d8d2c5;--gold:#b88a27;--focus:#624600;--ok:#27643a;--warn:#8b5a11;--bad:#9d2f2f;font-family:Segoe UI,Tahoma,Arial,sans-serif;color:var(--ink);background:var(--paper);scrollbar-color:var(--gold) var(--paper)}
 *{box-sizing:border-box}::selection{background:#d8b763;color:var(--ink)}body{margin:0;overflow-wrap:anywhere}.shell{max-width:1480px;margin:auto;padding:28px 34px 64px}.mast{display:grid;grid-template-columns:1fr auto;gap:24px;border-top:5px solid var(--ink);border-bottom:2px solid var(--gold);padding:18px 0 20px}.mast>*{min-width:0}.context{font-size:.82rem;color:var(--muted);margin-top:7px}h1{font-family:Georgia,serif;font-size:clamp(2rem,4vw,4.2rem);line-height:.95;margin:.22em 0}.date{font-variant-numeric:tabular-nums;font-size:1.1rem}.run{align-self:center;padding:10px 0 0;min-width:240px}.run strong{display:block;font-size:1.15rem}.workflow{border-left:2px solid var(--gold);padding-left:16px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}.metric{padding:18px 16px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric b{display:block;font-family:Georgia,serif;font-size:2rem}.metric span{color:var(--muted);font-size:.82rem}.filters{display:grid;grid-template-columns:180px 210px minmax(220px,1fr) auto;gap:12px;padding:22px 0;align-items:end}label{display:grid;gap:6px;min-width:0;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}input,select,button{width:100%;max-width:100%;font:inherit;border:1px solid #aaa396;background:var(--panel);padding:10px 11px;color:var(--ink);caret-color:var(--focus);min-height:42px}button{cursor:pointer;background:var(--ink);color:white;border-color:var(--ink);font-weight:700}button:hover{background:#383832}a:hover{text-decoration-thickness:2px;color:#102f4e}input:hover,select:hover{border-color:#625e55}input:focus,select:focus,button:focus,a:focus,summary:focus{outline:3px solid var(--focus);outline-offset:2px}.result-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding:9px 0;gap:12px}.result-head h2,.alerts h2{font-family:Georgia,serif;margin:0;font-size:1.45rem}.row{display:grid;grid-template-columns:120px minmax(280px,1.2fr) minmax(300px,2fr) 150px;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);align-items:start}.row>*{min-width:0}.type{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.title{font-family:Georgia,serif;font-size:1.15rem;margin:4px 0}.agency{font-size:.8rem;font-weight:700}.reason{color:var(--muted);line-height:1.5}.status{display:inline-block;padding:5px 8px;border:1px solid currentColor;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.status.direct_epesf,.status.potential_sector_impact{color:var(--ok)}.status.needs_review{color:var(--warn)}.status.not_relevant{color:var(--muted)}details{margin-top:10px}summary{cursor:pointer;font-weight:700;font-size:.82rem}.summary{border-top:2px solid var(--gold);padding-top:10px;line-height:1.55;margin:12px 0}.links{display:flex;flex-direction:column;gap:7px}a{color:#234d75;text-underline-offset:3px}.alerts{border:2px solid var(--bad);padding:16px;margin:22px 0}.alerts h2{color:var(--bad)}.alerts ul{margin-bottom:0}.empty{padding:48px 0;border-bottom:1px solid var(--line);font-family:Georgia,serif;font-size:1.3rem}.foot{margin-top:24px;color:var(--muted);font-size:.78rem}::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:var(--paper)}::-webkit-scrollbar-thumb{background:var(--gold);border:3px solid var(--paper)}
+.actions{display:flex;align-items:center;gap:16px}.email-form{margin:0}.email-form button{width:auto}.email-form button:disabled{cursor:not-allowed;background:#77736a;border-color:#77736a}.notice{padding:13px 15px;margin:18px 0;border-left:5px solid var(--ok);background:#edf5ed}.notice.error{border-color:var(--bad);background:#f8eaea}
 @media(max-width:1050px){.shell{padding:18px}.mast{grid-template-columns:1fr}.run{border-left:0;border-top:3px solid var(--gold);padding:12px 0}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(2){border-right:0}.filters{grid-template-columns:1fr 1fr}.filters label:last-of-type{grid-column:1/-1}.row{grid-template-columns:1fr}.links{flex-direction:row;flex-wrap:wrap}}
-@media(max-width:520px){.filters{grid-template-columns:1fr}.filters label:last-of-type{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(odd){border-right:1px solid var(--line)}.metric:nth-child(even){border-right:0}}
+@media(max-width:520px){.filters{grid-template-columns:1fr}.filters label:last-of-type{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(odd){border-right:1px solid var(--line)}.metric:nth-child(even){border-right:0}.result-head{align-items:flex-start;flex-direction:column}.actions{width:100%;justify-content:space-between;flex-wrap:wrap}}
 @media(max-width:360px){.metrics{grid-template-columns:1fr}.metric{border-right:0!important}}
 """
 
@@ -174,6 +218,7 @@ def render_page(app: WebApplication, query: Query) -> bytes:
     if not query.day and latest:
         query = Query(latest, query.relevance, query.text)
     rows = app.publications(query)
+    ready_count = len(app.email_items(query))
     issues = app.operational_issues()
     last = status.get("last_run") or {}
     counts = app.date_stats(query.day) if query.day else {"total": 0, "relevant": 0, "downloaded": 0}
@@ -189,7 +234,7 @@ def render_page(app: WebApplication, query: Query) -> bytes:
     )
     rows_html = []
     for row in rows:
-        documents = row.pop("documents", [])
+        documents = row.get("documents", [])
         doc_links = "".join(
             f'<a href="/document/{doc["id"]}" target="_blank">'
             f'{"PDF principal" if doc["kind"] == "main" else "Anexo"} · {doc["page_count"] or "?"} pág.</a>'
@@ -229,18 +274,71 @@ def render_page(app: WebApplication, query: Query) -> bytes:
         alert_rows = "".join(alert_items)
         alerts = f'<section class="alerts"><h2>Requiere atención</h2><ul>{alert_rows}</ul></section>'
     params = urlencode({"date": query.day, "relevance": query.relevance, "q": query.text})
+    notice = ""
+    if query.email_status == "prepared":
+        notice = (
+            f'<div class="notice" role="status">Se prepararon {_h(query.email_items)} '
+            f'publicaciones en {_h(query.email_files)} archivo(s) .eml y se abrió el correo '
+            "predeterminado. Completá remitente y destinatarios antes de enviar.</div>"
+        )
+    elif query.email_error:
+        notice = f'<div class="notice error" role="alert">{_h(query.email_error)}</div>'
+    hidden = (
+        f'<input type="hidden" name="date" value="{_h(query.day)}">'
+        f'<input type="hidden" name="relevance" value="{_h(query.relevance)}">'
+        f'<input type="hidden" name="q" value="{_h(query.text)}">'
+    )
+    disabled = "" if ready_count else (
+        ' disabled title="No hay publicaciones filtradas con resumen completo"'
+    )
     page = f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boletín EPESF</title><style>{CSS}</style></head>
     <body><main class="shell"><header class="mast"><div><h1>Boletín EPESF</h1><div class="date">Edición consultada: <strong>{_h(query.day or 'sin datos')}</strong></div><div class="context">Seguimiento normativo de la Primera Sección del BORA</div></div>
     <div class="run"><span class="context">Última ejecución</span><strong>{_h(_label(last.get('status')))}</strong><span>{_h(_timestamp(last.get('finished_at')))}</span></div></header><div class="workflow">
     <section class="metrics" aria-label="Estado general"><div class="metric"><b>{int(counts.get('total') or 0)}</b><span>publicaciones registradas</span></div><div class="metric"><b>{int(counts.get('relevant') or 0)}</b><span>relevantes</span></div><div class="metric"><b>{int(counts.get('downloaded') or 0)}</b><span>documentos descargados</span></div><div class="metric"><b>{int(status.get('failed_dates') or 0)}</b><span>fechas con fallas</span></div></section>
-    {alerts}<form class="filters" method="get"><label>Fecha<input type="date" name="date" value="{_h(query.day)}"></label><label>Relevancia<select name="relevance">{option_html}</select></label><label>Buscar<input type="search" name="q" value="{_h(query.text)}" placeholder="Organismo, tipo, número o texto"></label><button type="submit">Aplicar filtros</button></form>
-    <section><div class="result-head"><h2>Publicaciones</h2><a href="/export.csv?{params}">Exportar esta vista</a></div>{content}</section>
+    {alerts}{notice}<form class="filters" method="get"><label>Fecha<input type="date" name="date" value="{_h(query.day)}"></label><label>Relevancia<select name="relevance">{option_html}</select></label><label>Buscar<input type="search" name="q" value="{_h(query.text)}" placeholder="Organismo, tipo, número o texto"></label><button type="submit">Aplicar filtros</button></form>
+    <section><div class="result-head"><h2>Publicaciones</h2><div class="actions"><a href="/export.csv?{params}">Exportar esta vista</a><form class="email-form" action="/prepare-email" method="post">{hidden}<button type="submit"{disabled}>Preparar correo ({ready_count})</button></form></div></div>{content}</section>
     </div><footer class="foot">Servicio local · Los datos y documentos permanecen en este equipo.</footer></main></body></html>"""
     return page.encode("utf-8")
 
 
 def create_handler(app: WebApplication):
     class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            parsed = urlparse(self.path)
+            if parsed.path != "/prepare-email":
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            origin = self.headers.get("Origin", "")
+            expected_origin = f"http://{self.headers.get('Host', '')}"
+            if origin and origin != expected_origin:
+                self.send_error(HTTPStatus.FORBIDDEN)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                self.send_error(HTTPStatus.BAD_REQUEST)
+                return
+            if length > 8192:
+                self.send_error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                return
+            query = Query.from_url(self.rfile.read(length).decode("utf-8"))
+            parameters = {
+                "date": query.day, "relevance": query.relevance, "q": query.text,
+            }
+            try:
+                artifacts = app.prepare_email(query)
+                parameters.update({
+                    "email": "prepared",
+                    "items": str(sum(item.item_count for item in artifacts)),
+                    "files": str(len(artifacts)),
+                })
+            except (OSError, ValueError) as exc:
+                parameters["email_error"] = str(exc)
+            self.send_response(HTTPStatus.SEE_OTHER)
+            self.send_header("Location", "/?" + urlencode(parameters))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             if parsed.path == "/":

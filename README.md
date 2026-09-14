@@ -43,7 +43,10 @@ La interfaz de consulta local se inicia con:
 El comando abre el navegador predeterminado y mantiene el servicio exclusivamente
 en `127.0.0.1`. La pantalla muestra el estado de la última ejecución, permite
 filtrar por fecha, relevancia y texto, abre los PDF registrados y exporta solamente
-la vista filtrada. Se cierra con `Ctrl+C` en la ventana desde la que se inició.
+la vista filtrada. El botón **Preparar correo** crea un `.eml` con las publicaciones
+visibles que tengan un resumen completo y lo abre con el cliente de correo asociado
+en Windows. El usuario completa remitente y destinatarios y decide si lo envía. Se
+cierra con `Ctrl+C` en la ventana desde la que se inició.
 
 El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene las
 publicaciones seleccionadas o pendientes de revisión. La opción `--all` incorpora
@@ -77,13 +80,13 @@ sin enviarlo:
 ```
 
 La generación automática usa la Responses API con una salida JSON estructurada y
-`store=false`. El modelo se indica con `--model` o `EPE_OPENAI_MODEL`, y la clave se
-lee de `OPENAI_API_KEY`; ninguna credencial se guarda en el repositorio. La
+`store=false`. El modelo predeterminado es `gpt-5.6-terra`; puede sustituirse con
+`--model` o `EPE_OPENAI_MODEL`. La clave se lee de `OPENAI_API_KEY`; ninguna
+credencial se guarda en el repositorio. La
 referencia técnica es la [documentación oficial de Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
 
 ```powershell
 $env:OPENAI_API_KEY = "..."
-$env:EPE_OPENAI_MODEL = "modelo-habilitado-en-la-cuenta"
 .\.venv\Scripts\epe-boletin.exe --data-dir var summarize --max-items 2
 ```
 
@@ -91,11 +94,9 @@ $env:EPE_OPENAI_MODEL = "modelo-habilitado-en-la-cuenta"
 y divide el boletín en varios `.eml` cuando el límite configurado con `--max-mb`
 no permite enviarlo como una sola pieza.
 
-Cada correo recibe un `Message-ID` estable y queda registrado como `prepared`. El
-transporte SMTP admite SSL o STARTTLS, toma la contraseña de una variable de entorno
-y distingue un rechazo de un resultado incierto por pérdida de conexión durante el
-envío. El comando `send-email` no se utiliza hasta definir el servidor, remitente y
-destinatarios institucionales.
+Cada correo recibe un `Message-ID` estable y queda registrado como `prepared`. La
+aplicación no contiene un envío automático: el `.eml` se abre para que una persona
+complete remitente y destinatarios, lo revise y use el cliente de correo instalado.
 
 `config\operation.example.json` reúne las definiciones de producción sin incluir
 contraseñas. Se puede comprobar antes de activar la tarea diaria:

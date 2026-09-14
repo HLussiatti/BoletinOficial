@@ -35,6 +35,7 @@ class MailTest(unittest.TestCase):
             self.assertEqual(str(message["Message-ID"]), artifacts[0].message_id)
             self.assertEqual(("10",), artifacts[0].source_ids)
             self.assertEqual("prueba@example.test", message["To"])
+            self.assertIsNone(message["From"])
             self.assertIn("Resolución 10/2026", message.get_body(preferencelist=("plain",)).get_content())
             self.assertEqual(pdf.name, attachments[0].get_filename())
 

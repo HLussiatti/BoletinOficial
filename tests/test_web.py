@@ -3,10 +3,13 @@ from __future__ import annotations
 import tempfile
 import unittest
 from datetime import date
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
 from epe_boletin.db import Database
 from epe_boletin.models import Publication
+from epe_boletin.summaries import ConceptualSummary
 from epe_boletin.web import Query, WebApplication, render_page
 
 
@@ -85,6 +88,48 @@ class WebApplicationTest(unittest.TestCase):
             self.assertIsNotNone(stored)
             self.assertEqual(pdf.resolve(), stored[0])
             self.assertEqual("Revisar: resumen", issues[0]["detail"])
+
+    def test_prepares_and_opens_email_from_filtered_ready_publications(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data_dir = Path(folder)
+            database = Database(data_dir / "boletin.sqlite3")
+            database.migrate()
+            publication = Publication(
+                source_id="30", publication_date=date(2026, 9, 14),
+                section="primera", category="RESOLUCIONES",
+                agency="SECRETARÍA DE ENERGÍA", title="Resolución 30/2026",
+                reference="RESOL-2026-30", description="Régimen eléctrico",
+                detail_url="https://example.test/30", relevance="direct_epesf",
+                relevance_reason="Menciona a EPESF",
+            )
+            publication_id = database.upsert_publication(publication, True)
+            pdf = data_dir / "documents" / "2026_09_14_Resolución_30.pdf"
+            pdf.parent.mkdir(); pdf.write_bytes(b"%PDF-1.4\n%%EOF\n")
+            database.save_document(
+                publication_id, pdf, "a" * 64, pdf.stat().st_size,
+                publication.detail_url, page_count=1, extraction_status="complete",
+            )
+            candidate = database.summary_candidates("test", "test", 1)[0]
+            database.save_summary(
+                candidate,
+                ConceptualSummary("Resumen", "Incidencia directa", "Publicación", False),
+                "test", "test",
+            )
+            opened: list[Path] = []
+            app = WebApplication(database, data_dir, opened.append)
+            query = Query(day="2026-09-14", text="30/2026")
+
+            artifacts = app.prepare_email(query)
+            message = BytesParser(policy=policy.default).parsebytes(
+                artifacts[0].path.read_bytes()
+            )
+
+            self.assertEqual([artifacts[0].path.resolve()], opened)
+            self.assertEqual(("30",), artifacts[0].source_ids)
+            self.assertIsNone(message["From"])
+            self.assertIsNone(message["To"])
+            page = render_page(app, query).decode("utf-8")
+            self.assertIn("Preparar correo (1)", page)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import requests
 
 PROMPT_VERSION = "conceptual-es-2026-09-11.1"
+DEFAULT_SUMMARY_MODEL = "gpt-5.6-terra"
 
 
 @dataclass(frozen=True, slots=True)

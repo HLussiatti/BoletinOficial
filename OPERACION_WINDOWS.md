@@ -1,8 +1,8 @@
 # Operación en Windows
 
 Esta guía describe los componentes ya preparados para la operación local. La tarea
-programada no debe instalarse hasta completar la configuración del equipo, del
-servicio de resumen y del correo institucional.
+programada no debe instalarse hasta completar la configuración del equipo y del
+servicio de resumen.
 
 ## Ejecución diaria
 
@@ -64,35 +64,24 @@ el manifiesto, las huellas, la integridad de SQLite y sus claves foráneas:
 Después de comprobar el resultado, la tarea programada puede apuntarse a la carpeta
 restaurada. El comando no reemplaza automáticamente una base operativa existente.
 
-## Correo institucional
+## Preparación manual del correo
 
-En este equipo se detectaron Mozilla Thunderbird 115.12.2 como cliente
-predeterminado, con cuenta POP3, y Microsoft Outlook instalado. La entrega se
-preparó mediante SMTP para no depender de que alguno de los dos clientes esté
-abierto. Antes de activarla deben confirmarse servidor, puerto, cifrado, usuario,
-remitente, destinatarios y si la organización permite el envío SMTP desatendido.
-
-La contraseña se carga en el entorno y no se escribe en archivos:
-
-```powershell
-$env:EPE_SMTP_PASSWORD = "..."
-.\epe-boletin.exe --data-dir C:\EPESF\Boletin\datos send-email `
-  C:\EPESF\Boletin\datos\outbox\boletin.eml `
-  --host smtp.institucion.example --port 587 --username usuario
-```
-
-Si la conexión se pierde mientras el servidor procesa el mensaje, el estado queda
-como `uncertain` y requiere conciliación antes de reintentar.
+La interfaz local incluye el botón **Preparar correo**. La acción toma las
+publicaciones de la vista filtrada que ya tengan un resumen completo, crea uno o más
+archivos `.eml` en `datos\outbox` y los abre con el programa asociado por Windows.
+El aplicativo deja vacíos remitente y destinatarios. Una persona completa esos
+campos, revisa el contenido y decide si envía el mensaje. No se configura SMTP ni se
+realizan envíos automáticos.
 
 ## Diagnóstico de configuración
 
 Se copia `config\operation.example.json` a una ubicación operativa y se completan
-los valores institucionales. Las claves permanecen en las variables indicadas por
-`api_key_env` y `password_env`.
+los valores institucionales. La clave de OpenAI permanece en la variable indicada
+por `api_key_env`.
 
 ```powershell
 .\epe-boletin.exe check-config C:\EPESF\Boletin\config\operation.json
 ```
 
 La tarea programada sólo debe activarse cuando el diagnóstico informe
-`"ready": true` y se hayan realizado las pruebas controladas de resumen y correo.
+`"ready": true` y se hayan realizado las pruebas controladas de resumen.

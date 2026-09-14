@@ -38,7 +38,8 @@ def _message(items: list[BulletinItem], day: date, sender: str,
     message["Subject"] = (
         f"EPESF | Novedades normativas nacionales | {day:%d/%m/%Y}{suffix}"
     )
-    message["From"] = sender
+    if sender:
+        message["From"] = sender
     fingerprint = hashlib.sha256("|".join(
         f"{item.source_id}:{item.conceptual_summary}:{item.epesf_relationship}"
         for item in items
@@ -84,7 +85,7 @@ def _message(items: list[BulletinItem], day: date, sender: str,
 
 
 def build_email_batches(items: list[BulletinItem], day: date, output: Path,
-                        sender: str = "boletin-epesf@localhost",
+                        sender: str = "",
                         recipients: tuple[str, ...] = (),
                         max_bytes: int = 20 * 1024 * 1024) -> list[EmailArtifact]:
     if not items:
