@@ -74,6 +74,17 @@ Resolución 1544/2026 del Ministerio de Economía se controló manualmente para 
 un falso negativo y resultó ajena al sector. El resultado sin novedades relevantes
 fue validado por el usuario; la repetición no duplicó datos ni archivos.
 
+Ese mismo día se completó la recolección histórica acordada desde el 01/11/2025
+hasta el 14/09/2026, dividida en doce lotes reanudables. Los 318 días tienen
+cobertura: 209 ediciones completas y 109 días sin publicación, sin consultas
+fallidas. La base operativa contiene 13.258 publicaciones; las reglas dejaron 26
+casos con mención directa a EPESF, 565 de impacto sectorial potencial y 42 que
+requieren revisión. Se descargaron 1.294 PDF y anexos correspondientes a 709
+publicaciones, con un tamaño total de 336,85 MB. Todos los archivos tienen
+extracción completa, coinciden con su tamaño y huella registrados y respetan la
+nomenclatura acordada. La carpeta no contiene CSV ni resúmenes automáticos y no se
+utilizó Gemini. Los datos operativos permanecen en `var/operacion`, fuera de Git.
+
 La base de esa validación se migró al esquema 4. La reclasificación con las reglas
 `2026-09-11.1` mantuvo exactamente 89 publicaciones descartadas y las Resoluciones
 238/2026 y 239/2026 como los dos resultados de impacto sectorial potencial. Los
@@ -113,7 +124,8 @@ sin depender del intérprete del proyecto. La salida de consola se fijó en UTF-
 
 1. Validar la apertura del `.eml` en los clientes instalados, integrar la
    programación de Windows y convertir el paquete portable en un instalador.
-2. Ampliar la muestra histórica antes del procesamiento desde enero de 2025.
+2. Revisar una muestra estratificada de los resultados históricos para ajustar las
+   reglas antes de resumir o comunicar el conjunto.
 
 La instalación aislada de las dependencias declaradas se completó en `.venv`. La
 validación sobre un equipo Windows limpio continúa pendiente para la etapa del

@@ -138,13 +138,13 @@ Antes de la producción deberán verificarse estos casos:
 - Restauración del historial y los documentos a partir de un respaldo.
 - Consulta por filtros, apertura de PDF y exportación sin conocimientos de SQL ni notebooks.
 - Instalación limpia, actualización con datos existentes, traslado a otra computadora y ejecución a las 05:30 con sesión bloqueada.
-- Períodos históricos desde enero de 2025, recuperación por lotes y exclusión de ese histórico del correo diario.
+- Períodos históricos desde noviembre de 2025, recuperación por lotes y exclusión de ese histórico del correo diario.
 
-La muestra de evaluación debe tener publicaciones nacionales pertinentes y no pertinentes, distribuidas desde el 01/01/2025 hasta la fecha de ejecución y seleccionadas y etiquetadas por una persona del área. Como criterio inicial propongo detectar el 100 % de los casos explícitos de EPESF de esa muestra, revisar las omisiones sectoriales y exigir cero afirmaciones sin respaldo en las fichas aprobadas. Cumplirlo sobre una muestra no equivale a garantizar cobertura universal; el piloto deberá contrastar también las ediciones completas.
+La muestra de evaluación debe tener publicaciones nacionales pertinentes y no pertinentes, distribuidas desde el 01/11/2025 hasta la fecha de ejecución y seleccionadas y etiquetadas por una persona del área. Como criterio inicial propongo detectar el 100 % de los casos explícitos de EPESF de esa muestra, revisar las omisiones sectoriales y exigir cero afirmaciones sin respaldo en las fichas aprobadas. Cumplirlo sobre una muestra no equivale a garantizar cobertura universal; el piloto deberá contrastar también las ediciones completas.
 
-**8. Validación histórica desde el 01/01/2025**
+**8. Validación histórica desde el 01/11/2025**
 
-La validación comenzará el **1 de enero de 2025**, inclusive, y llegará hasta la fecha de ejecución. Se usará la fecha de publicación para recorrer el período; se conservará por separado la fecha de emisión de cada norma.
+La validación comienza el **1 de noviembre de 2025**, inclusive, y llega hasta la fecha de ejecución. Se usa la fecha de publicación para recorrer el período; se conserva por separado la fecha de emisión de cada norma. La primera recolección, completada el 14/09/2026, se limitó a encontrar resultados, construir la base y descargar los PDF; no generó resúmenes con Gemini.
 
 El trabajo histórico se organizará en lotes reanudables, inicialmente por mes. Primero se validarán algunas fechas y documentos representativos; después se recorrerá todo el intervalo y se identificarán las publicaciones del sector eléctrico, descargando sus documentos y elaborando sus resúmenes. Se registrarán por período las ediciones consultadas, los resultados evaluados, los documentos obtenidos, los resúmenes listos y los errores pendientes. Los días sin edición se diferenciarán de las consultas fallidas.
 
