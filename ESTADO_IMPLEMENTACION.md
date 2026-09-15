@@ -146,6 +146,18 @@ la sesión bloqueada; el usuario debe permanecer conectado a Windows.
 
 ## Próximo trabajo
 
+### Decisión diferida hasta después de probar la herramienta
+
+El 15/09/2026 el usuario decidió posponer la depuración de las reglas de impacto
+potencial y las exclusiones de resultados sectoriales adicionales. Se retomará
+después de las pruebas de uso y funcionamiento. El caso de referencia son las
+Resoluciones 507/2026 a 544/2026 del Ente Nacional Regulador del Gas y la
+Electricidad, publicadas el 01/09/2026 y ausentes de la carpeta de validación.
+La validación comprobó la detección de las 37 publicaciones aportadas, pero no
+estableció la pertinencia de todos los resultados adicionales. Hasta resolver
+esta decisión se mantienen las reglas, los registros y los PDF existentes.
+
+
 1. Verificar el resultado real de la primera ejecución programada de las 05:30.
 2. Convertir el paquete portable en un instalador y definir la ubicación y retención
    del respaldo institucional.
