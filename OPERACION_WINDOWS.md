@@ -69,8 +69,10 @@ restaurada. El comando no reemplaza automáticamente una base operativa existent
 
 La interfaz local permite marcar publicaciones con resumen completo e incluye el
 botón **Generar correo con seleccionadas**. La acción toma solamente las casillas
-marcadas, crea uno o más
-archivos `.eml` en `datos\outbox` y los abre con el programa asociado por Windows.
+marcadas, crea uno o más archivos `.eml` en `datos\outbox` y solicita abrirlos con
+el programa asociado por Windows. Los archivos llevan `X-Unsent: 1` para que
+Thunderbird los trate como borradores editables. El aviso de la web permite
+descargarlos y volver a intentar la apertura si el cliente no muestra la ventana.
 El aplicativo deja vacíos remitente y destinatarios. Una persona completa esos
 campos, revisa el contenido y decide si envía el mensaje. No se configura SMTP ni se
 realizan envíos automáticos.

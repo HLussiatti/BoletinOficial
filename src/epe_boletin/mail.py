@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import html
 import hashlib
+import os
+import shutil
+import tempfile
 from dataclasses import dataclass
 from datetime import date
 from email.message import EmailMessage
+from email.parser import BytesHeaderParser
 from pathlib import Path
 
 
@@ -31,9 +35,33 @@ class EmailArtifact:
     source_ids: tuple[str, ...]
 
 
+def ensure_editable_draft(path: Path) -> None:
+    """Upgrade an older generated .eml before reopening it in a mail client."""
+    temporary_name = ""
+    try:
+        with path.open("rb") as source:
+            headers = BytesHeaderParser().parse(source)
+            if headers.get("X-Unsent") == "1":
+                return
+            if "X-Unsent" in headers:
+                raise OSError("El borrador tiene una cabecera X-Unsent no compatible. Generá nuevamente el correo.")
+            source.seek(0)
+            with tempfile.NamedTemporaryFile(dir=path.parent, prefix=path.name + ".", suffix=".tmp", delete=False) as target:
+                temporary_name = target.name
+                target.write(b"X-Unsent: 1\r\n")
+                shutil.copyfileobj(source, target)
+        os.replace(temporary_name, path)
+    finally:
+        if temporary_name and os.path.exists(temporary_name):
+            os.unlink(temporary_name)
+
+
 def _message(items: list[BulletinItem], day: date, sender: str,
              recipients: tuple[str, ...], batch: int, total_batches: int) -> EmailMessage:
     message = EmailMessage()
+    # Thunderbird and other mail clients open saved .eml files for editing when
+    # they carry this header; otherwise they display them as received messages.
+    message["X-Unsent"] = "1"
     suffix = f" ({batch}/{total_batches})" if total_batches > 1 else ""
     message["Subject"] = (
         f"EPESF | Novedades normativas nacionales | {day:%d/%m/%Y}{suffix}"

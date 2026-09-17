@@ -19,7 +19,7 @@ from typing import Callable
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from .db import Database
-from .mail import EmailArtifact, build_email_batches
+from .mail import EmailArtifact, build_email_batches, ensure_editable_draft
 from .priority import publication_sort_key
 from .summaries import PROMPT_VERSION, configured_summarizer, retryable_summary_error
 from .web_ui import CSS, SCRIPT
@@ -411,6 +411,8 @@ class WebApplication:
 
 
 def open_eml(path: Path) -> None:
+    if path.suffix.lower() == ".eml":
+        ensure_editable_draft(path)
     if os.name == "nt":
         os.startfile(str(path.resolve()), 'open')  # type: ignore[attr-defined]
         return

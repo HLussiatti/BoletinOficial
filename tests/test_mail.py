@@ -7,7 +7,7 @@ from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 
-from epe_boletin.mail import BulletinItem, build_email_batches
+from epe_boletin.mail import BulletinItem, build_email_batches, ensure_editable_draft
 
 
 class MailTest(unittest.TestCase):
@@ -33,6 +33,7 @@ class MailTest(unittest.TestCase):
             attachments = list(message.iter_attachments())
             self.assertEqual(1, len(artifacts))
             self.assertEqual(str(message["Message-ID"]), artifacts[0].message_id)
+            self.assertEqual("1", message["X-Unsent"])
             self.assertEqual(("10",), artifacts[0].source_ids)
             self.assertEqual("prueba@example.test", message["To"])
             self.assertIsNone(message["From"])
@@ -62,6 +63,15 @@ class MailTest(unittest.TestCase):
             )
             self.assertEqual(2, len(artifacts))
             self.assertTrue(artifacts[0].path.name.endswith("_1_de_2.eml"))
+
+    def test_old_eml_opens_as_editable_draft_without_changing_content(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "old.eml"
+            original = b"Subject: Prueba\r\nContent-Type: text/plain\r\n\r\nContenido\r\n"
+            path.write_bytes(original)
+            ensure_editable_draft(path)
+            ensure_editable_draft(path)
+            self.assertEqual(b"X-Unsent: 1\r\n" + original, path.read_bytes())
 
 
 if __name__ == "__main__":

@@ -133,12 +133,14 @@ Cada correo recibe un `Message-ID` estable y queda registrado como `prepared`. L
 aplicación no contiene un envío automático: el `.eml` se abre para que una persona
 complete remitente y destinatarios, lo revise y use el cliente de correo instalado.
 
-En la interfaz, **Generar correo** guarda el `.eml` en `outbox` y muestra la
-aplicación de correo predeterminada de Windows sin bloquear la página. Cuando el
-archivo queda guardado, las publicaciones se desmarcan y la barra inferior
-desaparece. No se muestra un cartel de confirmación. Si falla la generación, se
+En la interfaz, **Generar correo** guarda el `.eml` en `outbox` con la cabecera
+`X-Unsent: 1` para abrirlo como borrador editable en Thunderbird y otros clientes
+compatibles. Solicita abrirlo con la aplicación asociada en Windows sin bloquear
+la página. Cuando el archivo queda guardado, las publicaciones se desmarcan y la barra inferior
+desaparece. El aviso ofrece descargar o volver a abrir el borrador, porque Windows
+no confirma que la ventana del cliente haya aparecido. Si falla la generación, se
 conserva la selección para reintentar. Si falla la apertura, se informa que el
-borrador quedó guardado y se ofrecen descarga y reapertura.
+borrador quedó guardado y se ofrecen las mismas acciones.
 
 `config\operation.example.json` reúne las definiciones de producción sin incluir
 contraseñas. Se puede comprobar antes de activar la tarea diaria:

@@ -217,15 +217,18 @@ SCRIPT = r"""
  }
  $('#clear-search')?.addEventListener('click',()=>{search.value='';form.requestSubmit();});
  window.addEventListener('pageshow',()=>{document.body.classList.remove('loading');$('#results')?.removeAttribute('aria-busy');const apply=form?.querySelector('.apply');if(apply)apply.disabled=false;});
- function emailFailure(message,files=[]){
-   const notice=$('#action-notice');notice.classList.add('error');notice.setAttribute('role','alert');notice.replaceChildren();
-   const text=document.createElement('p');text.textContent=message;notice.append(text);
+ function emailActions(files,notice){
    files.forEach(file=>{
      const actions=document.createElement('div');actions.className='actions';
      const link=document.createElement('a');link.href=file.url;link.download=file.name;link.textContent='Descargar '+file.name;
      const button=document.createElement('button');button.type='button';button.textContent='Volver a abrir';
      button.addEventListener('click',()=>retryEmail([file],button));actions.append(link,button);notice.append(actions);
    });
+ }
+ function emailFailure(message,files=[]){
+   const notice=$('#action-notice');notice.classList.add('error');notice.setAttribute('role','alert');notice.replaceChildren();
+   const text=document.createElement('p');text.textContent=message;notice.append(text);
+   emailActions(files,notice);
    notice.hidden=false;notice.scrollIntoView({block:'center'});
  }
  async function watchEmailOpen(token,files){
@@ -234,7 +237,7 @@ SCRIPT = r"""
        const response=await fetch('/email-open-status?token='+encodeURIComponent(token),{signal:AbortSignal.timeout(8000)});
        if(!response.ok)throw new Error('No se pudo confirmar la apertura de la aplicación de correo.');
        const state=await response.json();
-       if(state.status==='complete'){const notice=$('#action-notice');notice.classList.remove('error');notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');notice.textContent='Borrador listo — se abrió en tu cliente de correo. No se envió nada automáticamente.';notice.hidden=false;return;}
+       if(state.status==='complete'){const notice=$('#action-notice');notice.classList.remove('error');notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');notice.replaceChildren();const text=document.createElement('p');text.textContent='Borrador listo — se solicitó abrirlo en tu cliente de correo. Si no ves la ventana, podés volver a abrirlo o descargarlo. No se envió nada automáticamente.';notice.append(text);emailActions(files,notice);notice.hidden=false;return;}
        if(state.status==='error')throw new Error(state.error || 'No se pudo abrir la aplicación de correo.');
        await new Promise(resolve=>setTimeout(resolve,2000));
      }
