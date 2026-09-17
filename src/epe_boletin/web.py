@@ -6,6 +6,8 @@ import io
 import json
 import logging
 import os
+import re
+import subprocess
 import threading
 import time
 import uuid
@@ -413,11 +415,50 @@ class WebApplication:
 def open_eml(path: Path) -> None:
     if path.suffix.lower() == ".eml":
         ensure_editable_draft(path)
+        thunderbird = _registered_thunderbird() if os.name == "nt" else None
+        if thunderbird:
+            startup = subprocess.STARTUPINFO()
+            startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startup.wShowWindow = 1
+            subprocess.Popen(
+                [str(thunderbird), "-file", str(path.resolve())],
+                startupinfo=startup,
+                close_fds=True,
+            )
+            return
     if os.name == "nt":
         os.startfile(str(path.resolve()), 'open')  # type: ignore[attr-defined]
         return
     if not webbrowser.open(path.resolve().as_uri()):
         raise OSError('No se pudo abrir la aplicación de correo.')
+
+
+def _registered_thunderbird() -> Path | None:
+    import winreg
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.eml\UserChoice") as key:
+            prog_id = winreg.QueryValueEx(key, "ProgId")[0]
+    except OSError:
+        try:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, ".eml") as key:
+                prog_id = winreg.QueryValueEx(key, "")[0]
+        except OSError:
+            return None
+    if "thunderbird" not in str(prog_id).casefold():
+        return None
+    try:
+        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT,
+                            rf"{prog_id}\shell\open\command") as key:
+            command = winreg.QueryValueEx(key, "")[0]
+    except OSError:
+        return None
+    match = re.match(r'^\s*(?:"([^"]+\.exe)"|([^\s]+\.exe))', str(command), re.I)
+    if not match:
+        return None
+    executable = Path(os.path.expandvars(match.group(1) or match.group(2)))
+    return executable if executable.name.casefold() == "thunderbird.exe" and executable.is_file() else None
 
 
 def render_page(app: WebApplication, query: Query, raw_query: str = "") -> bytes:

@@ -135,8 +135,11 @@ complete remitente y destinatarios, lo revise y use el cliente de correo instala
 
 En la interfaz, **Generar correo** guarda el `.eml` en `outbox` con la cabecera
 `X-Unsent: 1` para abrirlo como borrador editable en Thunderbird y otros clientes
-compatibles. Solicita abrirlo con la aplicación asociada en Windows sin bloquear
-la página. Cuando el archivo queda guardado, las publicaciones se desmarcan y la barra inferior
+compatibles. Si Thunderbird está asociado al tipo `.eml`, abre el archivo con `-file`:
+la cabecera `X-Unsent: 1` hace que aparezca en una ventana de redacción
+con el cuerpo y los PDF adjuntos. Con otros clientes, solicita la apertura
+mediante Windows sin bloquear la página. Cuando el archivo queda guardado,
+las publicaciones se desmarcan y la barra inferior
 desaparece. El aviso ofrece descargar o volver a abrir el borrador, porque Windows
 no confirma que la ventana del cliente haya aparecido. Si falla la generación, se
 conserva la selección para reintentar. Si falla la apertura, se informa que el

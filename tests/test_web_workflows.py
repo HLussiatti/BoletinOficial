@@ -317,6 +317,29 @@ class WebWorkflowsTest(unittest.TestCase):
             open_eml(self.pdf)
             startfile.assert_called_once_with(str(self.pdf.resolve()),'open')
 
+    def test_windows_opens_thunderbird_eml_as_editable_file(self):
+        draft = self.folder / "d'raft.eml"
+        draft.write_bytes(b'Subject: Prueba\r\n\r\nContenido\r\n')
+        thunderbird = Path(r'C:\Program Files\Mozilla Thunderbird\thunderbird.exe')
+        with patch('epe_boletin.web.os.name','nt'), \
+             patch('epe_boletin.web._registered_thunderbird',return_value=thunderbird), \
+             patch('epe_boletin.web.subprocess.Popen') as popen, \
+             patch('epe_boletin.web.os.startfile') as startfile:
+            open_eml(draft)
+        self.assertEqual('1',BytesParser(policy=policy.default).parsebytes(draft.read_bytes())['X-Unsent'])
+        self.assertEqual([str(thunderbird),'-file',str(draft.resolve())],popen.call_args.args[0])
+        self.assertEqual(1,popen.call_args.kwargs['startupinfo'].wShowWindow)
+        startfile.assert_not_called()
+
+    def test_windows_uses_other_registered_client_for_eml(self):
+        draft = self.folder / 'draft.eml'
+        draft.write_bytes(b'Subject: Prueba\r\n\r\nContenido\r\n')
+        with patch('epe_boletin.web.os.name','nt'), \
+             patch('epe_boletin.web._registered_thunderbird',return_value=None), \
+             patch('epe_boletin.web.os.startfile') as startfile:
+            open_eml(draft)
+        startfile.assert_called_once_with(str(draft.resolve()),'open')
+
 
 if __name__ == '__main__':
     unittest.main()

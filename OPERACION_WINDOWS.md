@@ -73,6 +73,8 @@ marcadas, crea uno o más archivos `.eml` en `datos\outbox` y solicita abrirlos 
 el programa asociado por Windows. Los archivos llevan `X-Unsent: 1` para que
 Thunderbird los trate como borradores editables. El aviso de la web permite
 descargarlos y volver a intentar la apertura si el cliente no muestra la ventana.
+Cuando Thunderbird está asociado a `.eml`, el servicio lo abre con `-file` para
+mostrarlo en una ventana de redacción.
 El aplicativo deja vacíos remitente y destinatarios. Una persona completa esos
 campos, revisa el contenido y decide si envía el mensaje. No se configura SMTP ni se
 realizan envíos automáticos.
