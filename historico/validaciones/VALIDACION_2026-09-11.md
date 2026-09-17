@@ -1,7 +1,8 @@
 # Validación de la edición del 11 de septiembre de 2026
 
 Se ejecutó el recolector contra la Primera Sección del BORA del día, en modo de
-simulación y con una base separada en `var/validation-20260911`.
+simulación y con una base separada, conservada localmente en
+`var/pruebas/validation-20260911`.
 
 ## Resultado técnico
 

@@ -2,7 +2,7 @@
 
 La prueba se ejecutó contra la Primera Sección publicada por el Boletín Oficial
 de la República Argentina para el 14 de septiembre de 2026. Se utilizó una base
-aislada en `var/validation-20260914`, sin mezclar registros con validaciones
+aislada en `var/pruebas/validation-20260914`, sin mezclar registros con validaciones
 anteriores.
 
 ## Resultado de la recolección

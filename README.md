@@ -188,6 +188,8 @@ Las muestras incluyen dos ediciones consecutivas —29 y 30 de mayo de 2025— c
 153 publicaciones en total. La segunda contiene un suplemento y permite comprobar
 que se registra junto con la edición principal.
 
-El alcance y las etapas completas están en [PLAN_DE_TRABAJO.md](PLAN_DE_TRABAJO.md).
+El plan original y los informes de validación están en [historico](historico/README.md)
+como referencia de las etapas ya realizadas. La organización actual de archivos y
+el mantenimiento local se describen en [MANTENIMIENTO.md](MANTENIMIENTO.md).
 La construcción del ejecutable portable de Windows se describe en
 [BUILD_WINDOWS.md](BUILD_WINDOWS.md).

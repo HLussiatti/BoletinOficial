@@ -1,3 +1,7 @@
+> Documento histórico del 14/09/2026. Para el estado vigente, consultar
+> [README](../README.md), [PRODUCT](../PRODUCT.md) y
+> [CHANGELOG](../CHANGELOG.md).
+
 # Estado de implementación
 
 Actualizado el 14 de septiembre de 2026. Rama de trabajo:
@@ -65,7 +69,7 @@ día. Se registraron 91 publicaciones, se descargaron cuatro candidatos sectoria
 y un anexo para evaluar el texto completo, y quedaron seleccionadas las
 Resoluciones 238/2026 y 239/2026. Los dos avisos fueron descartados con la regla de
 negocio ajustada. Una ejecución posterior no volvió a descargar archivos. El
-detalle está en `VALIDACION_2026-09-11.md`.
+detalle está en [la validación del 11/09](validaciones/VALIDACION_2026-09-11.md).
 
 El 14 de septiembre de 2026 se ejecutó una segunda validación real. Se recorrieron
 74 publicaciones, se revisó un aviso de la Subsecretaría de Energía Eléctrica y se
@@ -94,7 +98,7 @@ Nacional. Con las reglas `2026-09-14.1`, las 37 publicaciones quedaron detectada
 La corrección agregó ocho candidatos en las 13.258 publicaciones: los cinco casos
 omitidos y tres normas similares para revisión. El conjunto no permite medir
 precisión porque no contiene una selección exhaustiva de negativos. El detalle se
-encuentra en `VALIDACION_USUARIO_2025-11_A_2026-09.md`.
+encuentra en [la validación de documentos del usuario](validaciones/VALIDACION_USUARIO_2025-11_A_2026-09.md).
 
 La base de esa validación se migró al esquema 4. La reclasificación con las reglas
 `2026-09-11.1` mantuvo exactamente 89 publicaciones descartadas y las Resoluciones

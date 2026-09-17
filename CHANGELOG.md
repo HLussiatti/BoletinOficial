@@ -1,5 +1,18 @@
 # Registro de cambios
 
+## 2026-09-17 · Cierre y depuración del repositorio
+
+- Se conservaron el prototipo de 2025, el plan original y las validaciones en
+  `historico/`, separados del código y de la documentación vigente.
+- Se eliminaron del repositorio un log antiguo, una salida temporal y un archivo
+  de ayuda generado durante la exploración.
+- Se reunieron las pruebas y capturas locales en `var/pruebas/`, fuera de Git.
+  Las pruebas automatizadas y sus muestras versionadas siguen en `tests/`.
+- Se quitaron del equipo el entorno obsoleto `.env/`, paquetes y cachés generados,
+  y una copia redundante de la clave. Se conservaron `.venv/` y `var/operacion/`.
+- El inventario, las rutas actuales y los pasos de verificación se registraron
+  en [MANTENIMIENTO.md](MANTENIMIENTO.md).
+
 ## 2026-09-17 · Rediseño de la web — aprobado
 
 Se tomó `estilo_web_v2.md` como referencia visual. El usuario revisó capturas
