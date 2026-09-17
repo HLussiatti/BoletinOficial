@@ -69,8 +69,17 @@ las publicaciones marcadas. El CSV superior exporta toda la vista filtrada.
 La densidad cómoda/compacta se conserva en el navegador. **?** muestra la
 ayuda de teclado (`/`, flechas, `j`/`k`, `x`, Enter y Esc).
 **Consultar ahora** y **Reintentar consulta** usan el proceso de lectura existente.
-**Generar resumen** y **Reintentar resumen** requieren la clave del proveedor de
-IA configurada en el entorno del servicio, igual que el comando `summarize`.
+**Generar resumen** y **Reintentar resumen** toman la clave de la variable de entorno
+del servicio o, para Gemini, de `gemini_api_key.txt` dentro de `--data-dir`.
+Con la tanda automática activada, al iniciar la web y después de cada consulta
+completa el servicio genera en segundo plano los resúmenes pendientes de las
+publicaciones con **Impacto potencial** y PDF extraído. Procesa una publicación por
+vez; si hay tres fallas consecutivas, detiene la tanda y conserva las demás como
+pendientes. El botón permite reintentar una falla
+individual. El texto de los PDF se envía al proveedor de IA configurado para generar
+estos resúmenes. La tanda automática queda activa por defecto; `EPE_AUTO_SUMMARIES=0`
+la pausa sin deshabilitar el botón manual. El progreso se consulta en
+`/summary-status` dentro del servidor local.
 
 El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene las
 publicaciones seleccionadas o pendientes de revisión. La opción `--all` incorpora

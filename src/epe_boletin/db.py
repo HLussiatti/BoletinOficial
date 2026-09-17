@@ -465,15 +465,28 @@ class Database:
     def summary_candidates(self, model: str, prompt_version: str,
                            limit: int | None = None,
                            include_completed: bool = False,
-                           publication_date: date | None = None) -> list[SummaryCandidate]:
+                           publication_date: date | None = None,
+                           relevance: str | None = None,
+                           pending_only: bool = False) -> list[SummaryCandidate]:
         with self.connect() as connection:
-            date_clause = " AND publication_date=?" if publication_date else ""
-            parameters = (publication_date.isoformat(),) if publication_date else ()
+            if relevance and relevance not in ("direct_epesf", "potential_sector_impact"):
+                raise ValueError("Clasificación de resumen inválida")
+            filters = [
+                "relevance IN ('direct_epesf','potential_sector_impact')",
+                "document_status='downloaded'",
+            ]
+            parameters: list[str] = []
+            if publication_date:
+                filters.append("publication_date=?")
+                parameters.append(publication_date.isoformat())
+            if relevance:
+                filters.append("relevance=?")
+                parameters.append(relevance)
+            if pending_only:
+                filters.append("summary_status='pending'")
             publications = connection.execute(f"""
                 SELECT * FROM publications
-                WHERE relevance IN ('direct_epesf','potential_sector_impact')
-                  AND document_status='downloaded'
-                  {date_clause}
+                WHERE {' AND '.join(filters)}
                 ORDER BY publication_date,id
             """, parameters).fetchall()
             results: list[SummaryCandidate] = []

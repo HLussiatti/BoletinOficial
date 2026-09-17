@@ -4,8 +4,10 @@ import csv
 import html
 import io
 import json
+import logging
 import os
 import threading
+import time
 import uuid
 import webbrowser
 from dataclasses import dataclass
@@ -19,6 +21,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from .db import Database
 from .mail import EmailArtifact, build_email_batches
 from .priority import publication_sort_key
+from .summaries import PROMPT_VERSION, configured_summarizer
 from .web_ui import CSS, SCRIPT
 
 
@@ -32,6 +35,7 @@ STATUS_LABELS = {
     "failed": "Con error",
     "not_published": "No publicado",
 }
+LOGGER = logging.getLogger(__name__)
 
 
 def _label(value: str | None) -> str:
@@ -106,6 +110,9 @@ class WebApplication:
         self.data_dir = data_dir.resolve()
         self.email_opener = email_opener or open_eml
         self.action_lock = threading.Lock()
+        self.summary_lock = threading.Lock()
+        self.auto_summary_guard = threading.Lock()
+        self.auto_summary_thread: threading.Thread | None = None
         self.email_open_guard = threading.Lock()
         self.email_open_jobs: dict[str, dict[str, str]] = {}
 
@@ -305,35 +312,92 @@ class WebApplication:
                      "daily", day, day)
         if result.get("failed"):
             raise ValueError("La consulta no se completó. Revisá el detalle en Fallas y reintentá.")
+        self.start_auto_summaries()
+
+    def start_auto_summaries(self) -> bool:
+        """Fill pending potential-impact summaries without blocking the web request."""
+        if os.environ.get("EPE_AUTO_SUMMARIES", "1").strip().lower() not in ("1", "true", "yes"):
+            return False
+        with self.auto_summary_guard:
+            if self.auto_summary_thread and self.auto_summary_thread.is_alive():
+                return True
+            try:
+                model, summarizer = configured_summarizer(self.data_dir)
+            except ValueError as exc:
+                LOGGER.warning("Resúmenes automáticos no iniciados: %s", exc)
+                return False
+            worker = threading.Thread(
+                target=self._run_auto_summaries,
+                args=(model, summarizer),
+                name="epe-auto-summaries",
+                daemon=True,
+            )
+            self.auto_summary_thread = worker
+            worker.start()
+            return True
+
+    def auto_summary_status(self) -> dict[str, int | bool]:
+        with self.database.connect() as connection:
+            counts = dict(connection.execute("""
+                SELECT summary_status,COUNT(*) FROM publications
+                WHERE relevance='potential_sector_impact'
+                  AND document_status='downloaded'
+                GROUP BY summary_status
+            """).fetchall())
+        return {
+            "running": bool(self.auto_summary_thread and self.auto_summary_thread.is_alive()),
+            "pending": counts.get("pending", 0),
+            "ready": counts.get("ready", 0),
+            "error": counts.get("error", 0),
+        }
+
+    def _run_auto_summaries(self, model: str, summarizer) -> None:
+        consecutive_failures = 0
+        while True:
+            with self.summary_lock:
+                candidates = self.database.summary_candidates(
+                    model, PROMPT_VERSION, limit=1,
+                    relevance="potential_sector_impact", pending_only=True,
+                )
+                if not candidates:
+                    return
+                candidate = candidates[0]
+                try:
+                    summary = summarizer.summarize(candidate)
+                    self.database.save_summary(candidate, summary, model, PROMPT_VERSION)
+                    consecutive_failures = 0
+                except Exception as exc:
+                    self.database.mark_summary_error(
+                        candidate, model, PROMPT_VERSION,
+                        "No se pudo generar el resumen automático. Reintentá manualmente.",
+                    )
+                    consecutive_failures += 1
+                    LOGGER.error("Resumen automático falló para publicación %s: %s",
+                                 candidate.publication_id, exc)
+            if consecutive_failures >= 3:
+                LOGGER.error("Resúmenes automáticos pausados tras tres fallas consecutivas")
+                return
+            time.sleep(5 if consecutive_failures else 1)
 
     def generate_summary(self, publication_id: int) -> None:
-        from .summaries import (DEFAULT_SUMMARY_MODEL, DEFAULT_SUMMARY_PROVIDER,
-                                PROMPT_VERSION, GeminiSummarizer, OpenAISummarizer)
-
-        provider = os.environ.get("EPE_SUMMARY_PROVIDER", DEFAULT_SUMMARY_PROVIDER)
-        if provider not in ("gemini", "openai"):
-            raise ValueError("El proveedor de resúmenes no está configurado correctamente")
-        model = os.environ.get("EPE_SUMMARY_MODEL", DEFAULT_SUMMARY_MODEL if provider == "gemini" else "gpt-5.6-terra")
-        key = os.environ.get("GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY", "")
-        if not key:
-            raise ValueError("Falta configurar la clave del proveedor de IA en el servicio local. Podés consultar el PDF original.")
-        with self.database.connect() as connection:
-            row = connection.execute("SELECT publication_date FROM publications WHERE id=?", (publication_id,)).fetchone()
-        if not row:
-            raise ValueError("La publicación no está registrada")
-        candidates = self.database.summary_candidates(model, PROMPT_VERSION,
-                         include_completed=True, publication_date=date.fromisoformat(row["publication_date"]))
-        candidate = next((item for item in candidates if item.publication_id == publication_id), None)
-        if not candidate or not candidate.full_text.strip():
-            raise ValueError("Hace falta un documento descargado con texto para generar el resumen. Consultá nuevamente la fecha.")
-        summarizer = GeminiSummarizer(key, model) if provider == "gemini" else OpenAISummarizer(key, model)
-        try:
-            summary = summarizer.summarize(candidate)
-        except Exception:
-            message = "El proveedor de IA no pudo generar el resumen. Reintentá o consultá el PDF original."
-            self.database.mark_summary_error(candidate, model, PROMPT_VERSION, message)
-            raise ValueError(message) from None
-        self.database.save_summary(candidate, summary, model, PROMPT_VERSION)
+        with self.summary_lock:
+            model, summarizer = configured_summarizer(self.data_dir)
+            with self.database.connect() as connection:
+                row = connection.execute("SELECT publication_date FROM publications WHERE id=?", (publication_id,)).fetchone()
+            if not row:
+                raise ValueError("La publicación no está registrada")
+            candidates = self.database.summary_candidates(model, PROMPT_VERSION,
+                             include_completed=True, publication_date=date.fromisoformat(row["publication_date"]))
+            candidate = next((item for item in candidates if item.publication_id == publication_id), None)
+            if not candidate or not candidate.full_text.strip():
+                raise ValueError("Hace falta un documento descargado con texto para generar el resumen. Consultá nuevamente la fecha.")
+            try:
+                summary = summarizer.summarize(candidate)
+            except Exception:
+                message = "El proveedor de IA no pudo generar el resumen. Reintentá o consultá el PDF original."
+                self.database.mark_summary_error(candidate, model, PROMPT_VERSION, message)
+                raise ValueError(message) from None
+            self.database.save_summary(candidate, summary, model, PROMPT_VERSION)
 
 
 def open_eml(path: Path) -> None:
@@ -442,6 +506,9 @@ def create_handler(app: WebApplication):
             if parsed.path == "/health":
                 self._send(json.dumps({"status": "ok"}).encode(), "application/json")
                 return
+            if parsed.path == "/summary-status":
+                self._send(json.dumps(app.auto_summary_status()).encode(), "application/json")
+                return
             if parsed.path == '/email':
                 name = parse_qs(parsed.query).get('name', [''])[0]
                 path = app.email_file(name)
@@ -503,6 +570,7 @@ def serve(database: Database, data_dir: Path, port: int = 8765, open_browser: bo
     database.migrate()
     app = WebApplication(database, data_dir)
     server = ThreadingHTTPServer(("127.0.0.1", port), create_handler(app))
+    app.start_auto_summaries()
     url = f"http://127.0.0.1:{server.server_port}/"
     if open_browser:
         threading.Timer(0.3, webbrowser.open, args=(url,)).start()

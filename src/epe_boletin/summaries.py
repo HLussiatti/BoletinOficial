@@ -2,15 +2,43 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 import unicodedata
 from dataclasses import dataclass, replace
+from pathlib import Path
 
 import requests
 
 PROMPT_VERSION = "conceptual-es-2026-09-14.2"
 DEFAULT_SUMMARY_PROVIDER = "gemini"
 DEFAULT_SUMMARY_MODEL = "gemini-3.5-flash-lite"
+
+
+def configured_summarizer(data_dir: Path):
+    """Use the service environment or its local, untracked Gemini key file."""
+    provider = os.environ.get("EPE_SUMMARY_PROVIDER", DEFAULT_SUMMARY_PROVIDER).strip().lower()
+    if provider not in ("gemini", "openai"):
+        raise ValueError("El proveedor de resúmenes no está configurado correctamente")
+    default_model = DEFAULT_SUMMARY_MODEL if provider == "gemini" else "gpt-5.6-terra"
+    model = os.environ.get("EPE_SUMMARY_MODEL", default_model).strip()
+    key_name = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
+    key = os.environ.get(key_name, "").strip()
+    if not key and provider == "gemini":
+        key_file = data_dir / "gemini_api_key.txt"
+        try:
+            key = key_file.read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise ValueError("No se pudo leer la clave local de Gemini") from exc
+    if not key:
+        raise ValueError(
+            "Falta configurar la clave del proveedor de IA en el servicio local. "
+            "Podés consultar el PDF original."
+        )
+    summarizer = GeminiSummarizer(key, model) if provider == "gemini" else OpenAISummarizer(key, model)
+    return model, summarizer
 
 SUMMARY_SCHEMA = {
     "type": "object",

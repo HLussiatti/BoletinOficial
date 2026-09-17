@@ -175,6 +175,62 @@ class WebWorkflowsTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Falta configurar la clave'):
                 self.app.generate_summary(self.ids[0])
 
+    def test_generate_summary_uses_local_key_file(self):
+        (self.folder / 'gemini_api_key.txt').write_text('local-test-key\n', encoding='utf-8')
+        result = ConceptualSummary('Resumen', 'Posible incidencia', 'Publicación', True)
+        with patch.dict('os.environ', {'GEMINI_API_KEY': '', 'EPE_SUMMARY_PROVIDER': 'gemini',
+                                       'EPE_SUMMARY_MODEL': 'test-model'}), \
+             patch('epe_boletin.summaries.GeminiSummarizer') as summarizer:
+            summarizer.return_value.summarize.return_value = result
+            self.app.generate_summary(self.ids[0])
+        summarizer.assert_called_once_with('local-test-key', 'test-model')
+        self.assertEqual('ready',
+                         self.app.publications(Query(day='2026-09-10'))[0]['summary_status'])
+
+    def test_automatic_summaries_process_only_pending_potential_impact(self):
+        self.db.save_document(self.ids[1], self.pdf, 'b'*64, self.pdf.stat().st_size,
+                              'https://example.test/2', page_count=2,
+                              extraction_status='complete', extracted_text='Texto sectorial')
+        summarizer = Mock()
+        summarizer.summarize.return_value = ConceptualSummary(
+            'Resumen automático', 'Posible incidencia', 'Publicación', True,
+        )
+        with patch('epe_boletin.web.time.sleep'):
+            self.app._run_auto_summaries('test-model', summarizer)
+            self.app._run_auto_summaries('test-model', summarizer)
+        summarizer.summarize.assert_called_once()
+        self.assertEqual(self.ids[1], summarizer.summarize.call_args.args[0].publication_id)
+        statuses = {row['source_id']: row['summary_status']
+                    for row in self.app.publications(Query(relevance='all'))}
+        self.assertEqual('pending', statuses['1'])
+        self.assertEqual('ready', statuses['2'])
+
+    def test_successful_consult_starts_automatic_summaries(self):
+        with patch('epe_boletin.pipeline.run', return_value={'failed': 0}), \
+             patch.object(self.app, 'start_auto_summaries') as start:
+            self.app.consult_day('2026-09-11')
+        start.assert_called_once_with()
+
+    def test_automatic_summaries_can_be_paused_without_key_access(self):
+        with patch.dict('os.environ', {'EPE_AUTO_SUMMARIES': '0'}), \
+             patch('epe_boletin.web.configured_summarizer') as configure:
+            self.assertFalse(self.app.start_auto_summaries())
+        configure.assert_not_called()
+
+    def test_automatic_summaries_start_by_default(self):
+        with patch.dict('os.environ', {}, clear=True), \
+             patch('epe_boletin.web.configured_summarizer', return_value=('test', Mock())), \
+             patch('epe_boletin.web.threading.Thread') as worker:
+            self.assertTrue(self.app.start_auto_summaries())
+        worker.return_value.start.assert_called_once_with()
+
+    def test_automatic_summary_progress_is_available_locally(self):
+        base = self.start_server()
+        with urlopen(base + '/summary-status') as response:
+            progress = json.load(response)
+        self.assertEqual({'running': False, 'pending': 0, 'ready': 0, 'error': 0},
+                         progress)
+
     def test_generated_email_opens_automatically_without_blocking_response(self):
         candidate = self.db.summary_candidates('test', 'test', 1)[0]
         self.db.save_summary(candidate, ConceptualSummary('Resumen', 'Incidencia directa', 'Publicación', False), 'test', 'test')
