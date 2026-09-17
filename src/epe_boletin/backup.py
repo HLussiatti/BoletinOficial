@@ -35,12 +35,13 @@ def create_backup(data_dir: Path, destination: Path,
             source.close()
 
         files: list[tuple[Path, str]] = [(snapshot, "boletin.sqlite3")]
-        documents = data_dir / "documents"
-        if documents.is_dir():
-            files.extend(
-                (path, path.relative_to(data_dir).as_posix())
-                for path in sorted(documents.rglob("*")) if path.is_file()
-            )
+        for folder_name in ("documents", "outbox"):
+            folder = data_dir / folder_name
+            if folder.is_dir():
+                files.extend(
+                    (path, path.relative_to(data_dir).as_posix())
+                    for path in sorted(folder.rglob("*")) if path.is_file()
+                )
         if rules_path and rules_path.is_file():
             files.append((rules_path, "config/relevance_rules.json"))
         manifest = {
@@ -106,6 +107,25 @@ def restore_backup(archive_path: Path, destination: Path) -> dict[str, object]:
 
             database = sqlite3.connect(staging / "boletin.sqlite3")
             try:
+                # Las rutas guardadas en la base pueden señalar la instalación
+                # original. Se ajustan sólo si el archivo forma parte del ZIP.
+                for table, folder_name in (("documents", "documents"),
+                                           ("deliveries", "outbox")):
+                    for row_id, stored_path in database.execute(
+                        f"SELECT id,path FROM {table}"
+                    ).fetchall():
+                        parts = str(stored_path).replace("\\", "/").split("/")
+                        if folder_name not in parts:
+                            continue
+                        relative = "/".join(parts[parts.index(folder_name):])
+                        if relative not in declared:
+                            continue
+                        new_path = destination.resolve() / Path(relative)
+                        database.execute(
+                            f"UPDATE {table} SET path=? WHERE id=?",
+                            (str(new_path), row_id),
+                        )
+                database.commit()
                 integrity = database.execute("PRAGMA integrity_check").fetchone()[0]
                 foreign_keys = database.execute("PRAGMA foreign_key_check").fetchall()
             finally:

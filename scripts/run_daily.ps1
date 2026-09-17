@@ -14,6 +14,7 @@ if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
     throw "No se encontró el ejecutable: $executable"
 }
 
+Set-Location -LiteralPath $InstallDir
 & $executable --data-dir $DataDir --rules $rules run --mode daily
 $collectionExitCode = $LASTEXITCODE
 if ($collectionExitCode -ne 0) {

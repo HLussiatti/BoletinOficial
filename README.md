@@ -1,11 +1,13 @@
 # Seguimiento del Boletín Oficial para EPESF
 
-Aplicación local en desarrollo para relevar la Primera Sección del Boletín Oficial
+Aplicación local para relevar la Primera Sección del Boletín Oficial
 de la República Argentina (BORA), registrar la cobertura diaria y conservar las
 publicaciones del sector eléctrico en una base SQLite.
 
 La [ficha del producto](PRODUCT.md), el [diseño aprobado](DESIGN.md) y el
 [registro de cambios](CHANGELOG.md) documentan el alcance vigente de la web.
+Para llevar el aplicativo y el histórico a otra computadora, seguí
+[INSTALL_WINDOWS.md](INSTALL_WINDOWS.md).
 
 ## Puesta en marcha
 

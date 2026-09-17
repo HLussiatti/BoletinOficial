@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## 2026-09-17 · Paquete de instalación con histórico
+
+- El ZIP de Windows incorpora una copia consistente de SQLite, 1.316 PDF y anexos,
+  cinco archivos de correo preparado, las reglas y la clave local de Gemini.
+- Al restaurar en otra computadora, las rutas guardadas de documentos y borradores
+  se actualizan a la nueva ubicación. El manifiesto verifica tamaños y SHA-256.
+- `install_package.ps1` instala en una carpeta nueva y registra bajo SYSTEM la
+  tarea diaria de las 05:30. `run_ui.ps1` abre la base histórica instalada.
+- Los pasos para trasladar, instalar y verificar el paquete están en
+  [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md).
+
 ## 2026-09-17 · Cierre y depuración del repositorio
 
 - Se conservaron el prototipo de 2025, el plan original y las validaciones en

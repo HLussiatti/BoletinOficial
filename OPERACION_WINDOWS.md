@@ -19,8 +19,9 @@ la base y en `datos\logs\epe-boletin.log`.
 ## Tarea programada
 
 `scripts\run_daily.ps1` ejecuta ambos pasos con rutas absolutas. La clave se toma de
-`GEMINI_API_KEY` o de `datos\gemini_api_key.txt`; el archivo debe quedar fuera del
-repositorio.
+`GEMINI_API_KEY` o de `var\operacion\gemini_api_key.txt`; el archivo queda fuera del
+repositorio. El instalador de [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md) restaura el
+histórico y registra automáticamente la tarea bajo la cuenta de servicio SYSTEM.
 `scripts\install_scheduled_task.ps1` registra una tarea diaria a las 05:30 con estas
 opciones:
 
@@ -30,13 +31,13 @@ opciones:
 - impedir ejecuciones simultáneas;
 - limitar cada ejecución a dos horas.
 
-Cuando la instalación esté lista, el registro se realizará desde PowerShell con las
-rutas definitivas:
+Para volver a registrar la tarea manualmente desde PowerShell elevado, con una
+instalación existente y sin otra tarea del mismo nombre:
 
 ```powershell
 .\scripts\install_scheduled_task.ps1 `
-  -InstallDir C:\EPESF\Boletin `
-  -DataDir C:\EPESF\Boletin\datos
+  -InstallDir "$env:LOCALAPPDATA\EPESF\Boletin" `
+  -DataDir "$env:LOCALAPPDATA\EPESF\Boletin\var\operacion"
 ```
 
 ## Respaldo
@@ -89,5 +90,6 @@ por `api_key_env` o en el archivo local de credencial mencionado arriba.
 .\epe-boletin.exe check-config C:\EPESF\Boletin\config\operation.json
 ```
 
-La tarea programada sólo debe activarse cuando el diagnóstico informe
-`"ready": true` y se hayan realizado las pruebas controladas de resumen.
+El instalador comprueba que la base histórica y la clave estén presentes antes
+de activar la tarea. `check-config` sirve para revisar ajustes institucionales
+adicionales cuando se utilice `operation.json`.
