@@ -16,6 +16,11 @@ python -m venv .venv
 .\scripts\build_windows.ps1 -Version 0.1.0
 ```
 
+Por defecto, la construcción toma la clave de
+`var\operacion\gemini_api_key.txt`. Para usar otra ubicación, indicá
+`-GeminiKeyFile` con la ruta del archivo. La construcción se detiene si falta o
+está vacío.
+
 El script crea `dist\epe-boletin` y el archivo
 `dist\epe-boletin-0.1.0-windows-x64.zip`. El paquete incluye:
 
@@ -23,7 +28,21 @@ El script crea `dist\epe-boletin` y el archivo
 - la configuración versionada de relevancia;
 - los scripts de ejecución y programación diaria;
 - el script `run_ui.ps1` para abrir la interfaz local;
+- `var\gemini_api_key.txt`, que usan la web y la tarea diaria en el equipo de destino;
 - los manuales de uso y operación.
+
+El ZIP contiene la clave en texto legible. Guardá y compartí el paquete sólo en
+una ubicación autorizada; la clave y el ZIP generado permanecen fuera de Git.
+Al extraer el paquete, `scripts\run_ui.ps1` usa `var` como carpeta de datos y
+encuentra allí la clave sin configuración adicional. El lanzador detecta su carpeta
+de instalación automáticamente.
+
+## Uso en otra máquina
+
+Extraé el ZIP en una carpeta local y ejecutá `scripts\run_ui.ps1` dentro de la
+carpeta `epe-boletin` extraída. La web se abre en `127.0.0.1:8765`. La base SQLite
+se crea en `var` junto a la clave incluida. Para trasladar el histórico y los PDF,
+restaurá un respaldo con el procedimiento de `OPERACION_WINDOWS.md`.
 
 `build`, `dist` y el archivo `.spec` generado quedan fuera de Git. Cada versión debe
 construirse desde un commit identificado y publicar su SHA-256 junto con el

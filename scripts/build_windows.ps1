@@ -1,6 +1,7 @@
 param(
     [string]$Python = ".\.venv\Scripts\python.exe",
-    [string]$Version = "0.1.0"
+    [string]$Version = "0.1.0",
+    [string]$GeminiKeyFile = "var\operacion\gemini_api_key.txt"
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,6 +10,17 @@ Set-Location $projectRoot
 
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
     throw "No se encontró Python para construir el paquete: $Python"
+}
+$keySource = if ([IO.Path]::IsPathRooted($GeminiKeyFile)) {
+    $GeminiKeyFile
+} else {
+    Join-Path $projectRoot $GeminiKeyFile
+}
+if (-not (Test-Path -LiteralPath $keySource -PathType Leaf)) {
+    throw "No se encontró el archivo de clave de Gemini: $keySource"
+}
+if ((Get-Item -LiteralPath $keySource).Length -eq 0) {
+    throw "El archivo de clave de Gemini está vacío: $keySource"
 }
 
 & $Python -m PyInstaller --noconfirm --clean --onedir `
@@ -19,6 +31,9 @@ if ($LASTEXITCODE -ne 0) {
 
 $package = Join-Path $projectRoot "dist\epe-boletin"
 Copy-Item -LiteralPath "config" -Destination (Join-Path $package "config") -Recurse
+$dataDestination = Join-Path $package "var"
+New-Item -ItemType Directory -Path $dataDestination -Force | Out-Null
+Copy-Item -LiteralPath $keySource -Destination (Join-Path $dataDestination "gemini_api_key.txt") -Force
 $scriptDestination = Join-Path $package "scripts"
 New-Item -ItemType Directory -Path $scriptDestination -Force | Out-Null
 Copy-Item -LiteralPath "scripts\run_daily.ps1" -Destination $scriptDestination

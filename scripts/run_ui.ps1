@@ -1,9 +1,12 @@
 param(
-    [string]$InstallDir = "C:\EPESF\Boletin",
+    [string]$InstallDir = "",
     [int]$Port = 8765
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $InstallDir) {
+    $InstallDir = Split-Path -Parent $PSScriptRoot
+}
 $executable = Join-Path $InstallDir "epe-boletin.exe"
 $dataDir = Join-Path $InstallDir "var"
 
