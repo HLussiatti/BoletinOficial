@@ -4,6 +4,9 @@ Aplicación local en desarrollo para relevar la Primera Sección del Boletín Of
 de la República Argentina (BORA), registrar la cobertura diaria y conservar las
 publicaciones del sector eléctrico en una base SQLite.
 
+La [ficha del producto](PRODUCT.md), el [diseño aprobado](DESIGN.md) y el
+[registro de cambios](CHANGELOG.md) documentan el alcance vigente de la web.
+
 ## Puesta en marcha
 
 En Windows PowerShell:
@@ -40,13 +43,34 @@ La interfaz de consulta local se inicia con:
 
 El comando abre el navegador predeterminado y mantiene el servicio exclusivamente
 en `127.0.0.1`. La pantalla muestra el estado de la última ejecución, permite
-filtrar por fecha, relevancia y texto, recorrer el histórico consolidado desde
+filtrar por período, relevancia, tipo de publicación y texto, recorrer el histórico consolidado desde
 noviembre de 2025, abrir los PDF registrados y exportar solamente la vista filtrada.
+Dentro de cada fecha, las publicaciones se ordenan por prioridad de revisión:
+primero las menciones directas a EPESF, luego el impacto potencial y después las
+pendientes de revisión. A igual clasificación, se prioriza la Secretaría de Energía
+y se dejan después las del ENRE o del regulador nacional de gas y electricidad.
+El correo generado conserva este criterio. El orden estima la incidencia y no
+modifica la clasificación ni confirma por sí solo una obligación para EPESF.
 Cada publicación con resumen completo incluye una casilla. El botón **Generar correo
 con seleccionadas** crea un `.eml` sólo con las casillas marcadas y lo abre con el
 cliente de correo asociado en Windows. El usuario completa remitente y destinatarios
 y decide si lo envía. Se
 cierra con `Ctrl+C` en la ventana desde la que se inició.
+
+La interfaz sigue la guía `estilo_web_v2.md`: blanco frío, grafito y azul institucional,
+sin serif; título, pestañas y estado en una barra superior de ancho completo.
+Incluye un selector de período único que abre un calendario para elegir Desde/Hasta
+de manera continua, accesos Hoy, Ayer, siete
+días y mes, métricas de publicaciones, relevancia e impacto, calendario histórico
+y vista de fallas. La tabla da más espacio al resumen de Análisis y agrupa el
+selector de densidad y la exportación CSV en una barra sobre los resultados.
+La selección habilita el correo y muestra una barra con conteo y exportación de
+las publicaciones marcadas. El CSV superior exporta toda la vista filtrada.
+La densidad cómoda/compacta se conserva en el navegador. **?** muestra la
+ayuda de teclado (`/`, flechas, `j`/`k`, `x`, Enter y Esc).
+**Consultar ahora** y **Reintentar consulta** usan el proceso de lectura existente.
+**Generar resumen** y **Reintentar resumen** requieren la clave del proveedor de
+IA configurada en el entorno del servicio, igual que el comando `summarize`.
 
 El CSV sólo se genera cuando se ejecuta `export-csv` y, por defecto, contiene las
 publicaciones seleccionadas o pendientes de revisión. La opción `--all` incorpora
@@ -98,6 +122,13 @@ no permite enviarlo como una sola pieza.
 Cada correo recibe un `Message-ID` estable y queda registrado como `prepared`. La
 aplicación no contiene un envío automático: el `.eml` se abre para que una persona
 complete remitente y destinatarios, lo revise y use el cliente de correo instalado.
+
+En la interfaz, **Generar correo** guarda el `.eml` en `outbox` y muestra la
+aplicación de correo predeterminada de Windows sin bloquear la página. Cuando el
+archivo queda guardado, las publicaciones se desmarcan y la barra inferior
+desaparece. No se muestra un cartel de confirmación. Si falla la generación, se
+conserva la selección para reintentar. Si falla la apertura, se informa que el
+borrador quedó guardado y se ofrecen descarga y reapertura.
 
 `config\operation.example.json` reúne las definiciones de producción sin incluir
 contraseñas. Se puede comprobar antes de activar la tarea diaria:

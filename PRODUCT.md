@@ -1,94 +1,128 @@
-# Producto: seguimiento del Boletín Oficial para EPESF
+# Boletín Oficial EPESF
 
-## Propósito
+<!-- impeccable:product-schema 1 -->
 
-Aplicación local de Windows para detectar y revisar publicaciones de la Primera
-Sección del BORA que puedan afectar a la Empresa Provincial de la Energía de
-Santa Fe. Debe reducir el volumen que revisa una persona sin ocultar el respaldo
-documental ni el estado operativo de cada ejecución.
+## Platform
 
-## Usuarios y contexto
+web
 
-El usuario principal es personal técnico o regulatorio de EPESF. La consulta se
-realiza desde una PC de trabajo, normalmente después del proceso diario de las
-05:30. La información, los PDF y las credenciales permanecen en el equipo.
+## Users
 
-## Plataforma y tecnología
+El usuario principal es personal técnico o regulatorio de la Empresa Provincial
+de la Energía de Santa Fe (EPESF). Revisa las publicaciones de la Primera Sección
+del Boletín Oficial de la República Argentina (BORA) que podrían afectar a la
+empresa y contrasta cada conclusión con su fuente oficial.
 
-La interfaz se abre en el navegador predeterminado mediante un acceso directo de
-Windows. Un servicio local escucha exclusivamente en `127.0.0.1` y consulta la
-base SQLite y los documentos ya administrados por el paquete Python. La primera
-versión usa HTML renderizado en el servidor, CSS y JavaScript acotado, sin requerir
-Node.js ni alojamiento público.
+## Product Purpose
+
+Aplicación local para detectar, clasificar y revisar esas publicaciones sin
+ocultar el respaldo documental ni el estado de cada ejecución. Debe reducir el
+volumen de lectura manual, hacer visibles los posibles impactos y ayudar a
+preparar una comunicación revisada por una persona.
+
+## Positioning
+
+El flujo reúne en el mismo equipo la cobertura diaria, la clasificación de
+impacto, los resúmenes conceptuales, los documentos oficiales y la selección
+para correo. Las señales y los resúmenes ayudan a priorizar la revisión; no son
+texto oficial ni sustituyen la decisión de EPESF. La aplicación prepara un
+borrador, pero no envía correos automáticamente.
+
+## Operating Context
+
+- La tarea diaria comienza a las 05:30, consulta la fecha corriente y genera
+  con Gemini los resúmenes pendientes de esa edición. La persona suele revisar
+  el resultado después de ese proceso desde una PC de trabajo con Windows.
+- La interfaz se abre en el navegador mediante un servicio local que escucha
+  sólo en `127.0.0.1`. Los datos SQLite, PDF, documentos y credenciales
+  permanecen en el equipo; no hay alojamiento público ni dependencia de Node.js
+  para usar la aplicación.
+- El histórico consolidado desde el 01/11/2025 se consulta en la misma interfaz.
+  Una edición sin publicaciones relevantes es un resultado válido y no genera
+  un correo vacío.
 
 ## Tareas principales
 
-- Conocer si la edición del día fue procesada completa o tuvo fallas.
-- Consultar publicaciones por fecha, tipo, número, organismo y texto.
-- Distinguir seleccionadas, pendientes de revisión y descartadas.
-- Leer el resumen conceptual y la relación estimada con EPESF.
+- Confirmar si la edición diaria se procesó completa o presenta fallas.
+- Consultar por día o período continuo, relevancia, tipo de publicación,
+  organismo, número o texto; recorrer el histórico.
+- Distinguir impacto directo, impacto potencial, pendientes de revisión y
+  descartadas; leer primero el resumen conceptual y luego el motivo de
+  clasificación.
 - Abrir el aviso oficial, el PDF principal y sus anexos.
-- Identificar documentos, resúmenes o entregas con errores pendientes.
-- Exportar el conjunto filtrado cuando haga falta un control adicional.
-- Seleccionar publicaciones y preparar un `.eml` sólo con ellas en el correo
-  predeterminado.
+- Identificar errores de cobertura, documentos, resúmenes o entregas.
+- Exportar la vista filtrada a CSV o seleccionar publicaciones para preparar
+  un `.eml` en el cliente de correo predeterminado.
 
-## Reglas y decisiones confirmadas
+## Capabilities and Constraints
 
+- La interfaz aprobada usa «Boletín Oficial EPESF», cinco indicadores
+  (publicaciones, relevantes, impacto directo, impacto potencial y fechas con
+  fallas), filtros por período/relevancia/tipo/texto, y vistas Día, Histórico
+  y Fallas. No incluye el antiguo contador ni filtro «con documento»; los
+  enlaces a documentos siguen disponibles en cada publicación.
+- El período se elige desde un único control: el calendario permite marcar
+  inicio y fin de manera continua, muestra dos meses en escritorio y uno en
+  móvil, y conserva los accesos Hoy, Ayer, Últimos 7 días y Este mes. Sin
+  JavaScript quedan campos de fecha nativos como respaldo.
+- La columna Análisis prioriza el resumen sobre los indicios; el tipo de
+  publicación no se repite en Fecha y sólo se muestra junto al título cuando
+  éste no lo expresa. La densidad Cómoda/Compacta y la exportación CSV de la
+  vista están sobre la lista, fuera de su cabecera.
 - Los archivos se nombran `YYYY_MM_DD_Tipo_Número.pdf`; los anexos agregan
-  `_Anexo_N`.
-- Se preservan correctamente los caracteres españoles, incluida «Resolución».
-- El CSV no se genera durante la ejecución diaria. Su exportación normal incluye
-  sólo publicaciones seleccionadas o pendientes; la inclusión de descartadas es
-  una acción explícita de control.
-- El texto por artículo y sus páginas se conserva como respaldo interno. La salida
-  principal para el usuario es un resumen conceptual.
+  `_Anexo_N`. Se preservan los caracteres españoles, incluida «Resolución».
+- El texto por artículo y sus páginas se conserva como respaldo interno. La
+  salida principal para la persona es un resumen conceptual, que debe
+  contrastarse con la publicación oficial.
 - Los avisos eléctricos particulares sin vínculo con EPESF o Santa Fe se
   descartan, aunque pueden descargarse inicialmente para evaluar su texto.
-- Una edición sin publicaciones relevantes es un resultado válido y no genera un
-  correo vacío.
-- La aplicación no envía correos automáticamente. Genera un `.eml` sin remitente ni
-  destinatarios; una persona completa esos campos, revisa y envía desde su cliente.
+- El CSV no se genera durante la ejecución diaria. La exportación habitual
+  incluye publicaciones seleccionadas o pendientes; incluir descartadas exige
+  una acción explícita de control. El CSV de la interfaz exporta la vista
+  filtrada o la selección, según la acción elegida.
+- La aplicación genera un `.eml` sin remitente ni destinatarios. Una persona
+  completa esos campos, revisa el borrador y decide si lo envía.
 - El modelo inicial para los resúmenes es `gemini-3.5-flash-lite` mediante la
-  Interactions API de Gemini, en su nivel gratuito y con salida JSON estructurada.
-- La tarea diaria se inicia a las 05:30, consulta sólo la fecha corriente y genera
-  con Gemini los resúmenes pendientes de esa edición.
-- El histórico consolidado desde el 01/11/2025 permanece disponible para consulta,
-  búsqueda y apertura de sus PDF desde la misma interfaz.
+  Interactions API de Gemini, en su nivel gratuito y con salida JSON
+  estructurada.
 
-## Evidencia disponible
+## Brand Commitments
 
-Las validaciones reales del 11/09/2026 y 14/09/2026 comprobaron la lectura completa,
-la descarga, la nomenclatura, la clasificación, los anexos, la idempotencia, los
-resúmenes revisados, el correo de simulación, el respaldo y la restauración. La
-segunda validación confirmó correctamente un día sin novedades relevantes.
+El nombre visible aprobado es «Boletín Oficial EPESF». La interfaz y los
+documentos de uso hablan en español y distinguen claramente la información
+oficial de los análisis y estados del aplicativo. La dirección visual aprobada
+se documenta por separado en `DESIGN.md`, con `estilo_web_v2.md` como referencia.
 
-## Criterios de calidad de la interfaz
+## Evidence on Hand
 
-La pantalla debe priorizar el estado diario y la lista de publicaciones. Debe ser
-legible en monitores de oficina y usable con teclado, ofrecer foco visible, estados
-con texto además de color y mantener una jerarquía sobria acorde con documentación
-normativa. La interfaz debe responder bien en ventanas angostas, sin convertir cada
-dato en una tarjeta ni ocultar información crítica detrás de interacciones frágiles.
+- Las validaciones reales del 11/09/2026 y 14/09/2026 comprobaron lectura,
+  descarga, nomenclatura, clasificación, anexos, idempotencia, resúmenes
+  revisados, correo de simulación, respaldo y restauración. La segunda
+  validación confirmó un día sin novedades relevantes.
+- El rediseño fue aprobado por el usuario tras revisar la web en 1920×1080 y
+  1366×768, y luego el selector continuo inspirado en la captura adjunta de
+  Despegar. El detalle de decisiones y verificaciones está en `CHANGELOG.md`.
+- La última verificación de esta interfaz pasó 48 pruebas automatizadas. La
+  comprobación visual y de interacciones usa datos sintéticos en
+  `tests/preview_web_fixture.py` y `tests/capture_web_style.cjs`; no debe
+  presentarse como validación de publicaciones oficiales.
 
-## Direction contract
+## Product Principles
 
-**THESIS:** Un expediente operativo que conduce del estado diario al documento y
-evita la disposición genérica de tablero con tarjetas.
+1. Priorizar lo que puede incidir en EPESF sin ocultar el conjunto ni la
+   clasificación de los demás registros.
+2. Mantener la fuente oficial y los documentos accesibles junto a cada
+   resumen; la interpretación siempre requiere revisión humana.
+3. Conservar el control local de datos, credenciales, exportaciones y envío
+   de correos.
+4. Hacer visible el estado operativo y permitir recuperar o investigar fallas.
+5. Sostener la lectura y el filtrado en distintos tamaños de pantalla sin
+   sacrificar información crítica.
 
-**OWN-WORLD:** Papel marfil, tinta negra, reglas finas y un único hilo dorado;
-títulos editoriales, controles sobrios y registros separados por líneas continuas.
+## Accessibility & Inclusion
 
-**STORY:** El usuario confirma la cobertura, reduce el conjunto con filtros,
-comprende la clasificación y abre la fuente que respalda la decisión.
-
-**FIRST VIEWPORT:** Cabecera documental y última ejecución arriba; cuatro métricas
-en una franja; filtros debajo; la lista empieza antes del pliegue y la acción
-principal es aplicar el filtro.
-
-**FORM:** Expediente operativo, cuarta dirección de la lista fundamentada; semilla
-`90acf5ee`. Interacción distintiva: el hilo dorado conecta el estado con el flujo
-documental y reaparece al desplegar el resumen conceptual.
-
-**FINISH:** unreviewed and undocumented is unfinished; this build ends with the
-finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+La interfaz debe funcionar con teclado, mostrar foco visible y expresar los
+estados con texto además de color. El selector de período permite navegar días
+con flechas y cerrar con Escape; los atajos generales no deben interferir con
+la escritura. La disposición responde a pantallas de oficina y ventanas
+angostas sin desborde horizontal ni dependencia de interacciones frágiles.

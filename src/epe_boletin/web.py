@@ -6,6 +6,7 @@ import io
 import json
 import os
 import threading
+import uuid
 import webbrowser
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -17,12 +18,14 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from .db import Database
 from .mail import EmailArtifact, build_email_batches
+from .priority import publication_sort_key
+from .web_ui import CSS, SCRIPT
 
 
 STATUS_LABELS = {
     "direct_epesf": "Impacto directo",
     "potential_sector_impact": "Impacto potencial",
-    "needs_review": "Revisar",
+    "needs_review": "Sin clasificar",
     "not_relevant": "Descartada",
     "complete": "Completo",
     "partial": "Parcial",
@@ -53,6 +56,7 @@ def _timestamp(value: object) -> str:
 class Query:
     day: str = ""
     relevance: str = "active"
+    category: str = ""
     text: str = ""
     history: bool = False
     selected_ids: tuple[int, ...] = ()
@@ -60,18 +64,26 @@ class Query:
     email_items: int = 0
     email_files: int = 0
     email_error: str = ""
+    email_names: tuple[str, ...] = ()
+    end_day: str = ""
+    view: str = "day"
+    month: str = ""
+    page: int = 1
 
     @classmethod
     def from_url(cls, query: str) -> "Query":
         values = parse_qs(query)
+        day_value = values.get("date", [""])[0].strip()
+        end_value = values.get("to", [""])[0].strip()
         item_value = values.get("items", ["0"])[0]
         file_value = values.get("files", ["0"])[0]
         selected_ids = tuple(
             int(value) for value in values.get("selected", []) if value.isdigit()
         )
         return cls(
-            day=values.get("date", [""])[0].strip(),
+            day=day_value,
             relevance=values.get("relevance", ["active"])[0].strip(),
+            category=values.get("category", [""])[0].strip(),
             text=values.get("q", [""])[0].strip(),
             history=values.get("history", [""])[0] == "1",
             selected_ids=selected_ids,
@@ -79,6 +91,11 @@ class Query:
             email_items=int(item_value) if item_value.isdigit() else 0,
             email_files=int(file_value) if file_value.isdigit() else 0,
             email_error=values.get("email_error", [""])[0].strip(),
+            email_names=tuple(values.get("eml", [])),
+            end_day="" if end_value == day_value else end_value,
+            view=values.get("view", ["history" if values.get("history") == ["1"] else "day"])[0],
+            month=values.get("month", [""])[0].strip(),
+            page=max(1, int(values.get("page", ["1"])[0])) if values.get("page", ["1"])[0].isdigit() else 1,
         )
 
 
@@ -88,21 +105,34 @@ class WebApplication:
         self.database = database
         self.data_dir = data_dir.resolve()
         self.email_opener = email_opener or open_eml
+        self.action_lock = threading.Lock()
+        self.email_open_guard = threading.Lock()
+        self.email_open_jobs: dict[str, dict[str, str]] = {}
 
     def publications(self, query: Query) -> list[dict[str, object]]:
         clauses: list[str] = []
         parameters: list[object] = []
-        if query.day:
+        if query.day and query.end_day:
+            clauses.append("p.publication_date BETWEEN ? AND ?")
+            parameters.extend((query.day, query.end_day))
+        elif query.day:
             clauses.append("p.publication_date=?")
             parameters.append(query.day)
         if query.relevance == "active":
             clauses.append("p.relevance!='not_relevant'")
+        elif query.relevance == "selected":
+            clauses.append("p.relevance IN ('direct_epesf','potential_sector_impact')")
         elif query.relevance and query.relevance != "all":
             clauses.append("p.relevance=?")
             parameters.append(query.relevance)
+        if query.category:
+            clauses.append("p.category=?")
+            parameters.append(query.category)
         if query.text:
             clauses.append("lower(p.category||' '||p.agency||' '||p.title||' '||p.reference||' '||p.description) LIKE ?")
             parameters.append(f"%{query.text.casefold()}%")
+        if query.view == "failures":
+            clauses.append("(p.document_status='error' OR p.summary_status='error' OR p.delivery_status IN ('error','uncertain') OR EXISTS (SELECT 1 FROM coverage c WHERE c.publication_date=p.publication_date AND c.status='failed'))")
         where = " WHERE " + " AND ".join(clauses) if clauses else ""
         with self.database.connect() as connection:
             rows = connection.execute(f"""
@@ -112,22 +142,23 @@ class WebApplication:
                    ORDER BY s.id DESC LIMIT 1) conceptual_summary,
                   (SELECT epesf_relationship FROM summaries s
                    WHERE s.publication_id=p.id AND s.status='complete'
-                   ORDER BY s.id DESC LIMIT 1) epesf_relationship
+                   ORDER BY s.id DESC LIMIT 1) epesf_relationship,
+                  (SELECT model FROM summaries s
+                   WHERE s.publication_id=p.id AND s.status='complete'
+                   ORDER BY s.id DESC LIMIT 1) summary_model
                 FROM publications p {where}
-                ORDER BY p.publication_date DESC, p.agency, p.title
             """, parameters).fetchall()
-            result = [dict(row) for row in rows]
+            result = sorted((dict(row) for row in rows), key=publication_sort_key)
+            documents_by_publication: dict[int, list[dict[str, object]]] = {}
+            for document in connection.execute("SELECT id,publication_id,kind,path,page_count FROM documents ORDER BY id"):
+                documents_by_publication.setdefault(int(document["publication_id"]), []).append(dict(document))
             for item in result:
-                documents = connection.execute(
-                    "SELECT id,kind,path,page_count FROM documents WHERE publication_id=? ORDER BY id",
-                    (item["id"],),
-                ).fetchall()
-                item["documents"] = [dict(document) for document in documents]
+                item["documents"] = documents_by_publication.get(int(item["id"]), [])
             return result
 
     def latest_date(self) -> str:
         with self.database.connect() as connection:
-            row = connection.execute("SELECT MAX(publication_date) value FROM publications").fetchone()
+            row = connection.execute("SELECT MAX(publication_date) value FROM (SELECT publication_date FROM publications UNION SELECT publication_date FROM coverage)").fetchone()
         return str(row["value"] or "")
 
     def date_stats(self, day: str = "") -> dict[str, int]:
@@ -152,7 +183,7 @@ class WebApplication:
                 issues.append({"kind": "Cobertura", "title": str(row["publication_date"]),
                                "detail": str(row["error"] or "Consulta fallida")})
             for row in connection.execute("""
-                SELECT title,detail_url,document_status,summary_status,delivery_status
+                SELECT id,publication_date,title,detail_url,document_status,summary_status,delivery_status
                 FROM publications
                 WHERE document_status='error' OR summary_status='error'
                    OR delivery_status IN ('error','uncertain')
@@ -164,6 +195,7 @@ class WebApplication:
                 if row["delivery_status"] in ("error", "uncertain"): states.append("entrega")
                 issues.append({"kind": "Publicación", "title": str(row["title"]),
                                "detail": "Revisar: " + ", ".join(states),
+                               "id": str(row["id"]), "day": str(row["publication_date"]),
                                "url": str(row["detail_url"] or "")})
         return issues
 
@@ -183,7 +215,7 @@ class WebApplication:
         return path, str(row["kind"])
 
     def email_items(self, query: Query):
-        if not query.day or not query.selected_ids:
+        if not query.day or query.end_day or not query.selected_ids:
             return []
         visible_ids = {int(row["id"]) for row in self.publications(query)}
         selected_ids = tuple(
@@ -192,7 +224,19 @@ class WebApplication:
         )
         return self.database.bulletin_items(date.fromisoformat(query.day), selected_ids)
 
-    def prepare_email(self, query: Query) -> list[EmailArtifact]:
+    def email_file(self, name: str) -> Path | None:
+        if not name or any(character in name for character in '/\\:') or not name.endswith('.eml'):
+            return None
+        path = (self.data_dir / 'outbox' / name).resolve()
+        if not path.is_relative_to(self.data_dir / 'outbox') or not path.is_file():
+            return None
+        with self.database.connect() as connection:
+            registered = connection.execute("SELECT path FROM deliveries WHERE status='prepared'").fetchall()
+        return path if any(Path(row['path']).resolve() == path for row in registered) else None
+
+    def prepare_email(self, query: Query, *, open_files: bool = True) -> list[EmailArtifact]:
+        if query.end_day:
+            raise ValueError("Elegí un solo día para preparar el correo")
         try:
             day = date.fromisoformat(query.day)
         except ValueError as exc:
@@ -208,161 +252,115 @@ class WebApplication:
             self.database.record_prepared_delivery(
                 day, artifact, (), index, len(artifacts)
             )
-            self.email_opener(artifact.path.resolve())
+        if open_files:
+            for artifact in artifacts:
+                self.email_opener(artifact.path.resolve())
         return artifacts
+
+    def request_email_open(self, names: str | tuple[str, ...]) -> str:
+        names = (names,) if isinstance(names, str) else tuple(dict.fromkeys(names))
+        paths = [self.email_file(name) for name in names]
+        if not paths or any(path is None for path in paths):
+            raise ValueError('El borrador no está disponible. Generá nuevamente el correo.')
+        with self.email_open_guard:
+            if any(job['status'] == 'pending' for job in self.email_open_jobs.values()):
+                raise ValueError('Hay una apertura de correo pendiente. Revisá tu aplicación de correo o descargá el .eml.')
+            self.email_open_jobs.clear()
+            token = uuid.uuid4().hex
+            self.email_open_jobs[token] = {'status': 'pending'}
+
+        def choose() -> None:
+            try:
+                errors = []
+                for path in paths:
+                    try:
+                        self.email_opener(path)
+                    except Exception as exc:
+                        errors.append(str(exc) or 'No se pudo abrir la aplicación de correo.')
+                result = {'status': 'error', 'error': ' '.join(dict.fromkeys(errors))} if errors else {'status': 'complete'}
+            except Exception as exc:
+                result = {'status': 'error', 'error': str(exc) or 'No se pudo abrir la aplicación. Descargá el .eml.'}
+            with self.email_open_guard:
+                self.email_open_jobs[token] = result
+
+        threading.Thread(target=choose, daemon=True).start()
+        return token
+
+    def email_open_status(self, token: str) -> dict[str, str] | None:
+        with self.email_open_guard:
+            state = self.email_open_jobs.get(token)
+            return dict(state) if state else None
+
+    def consult_day(self, day_value: str) -> None:
+        from .bora import BoraClient
+        from .pipeline import run
+        from .relevance import DEFAULT_RULES, load_rules
+
+        day = date.fromisoformat(day_value)
+        if day > date.today():
+            raise ValueError("La fecha no puede ser futura")
+        rules_path = Path("config/relevance_rules.json")
+        rules = load_rules(rules_path) if rules_path.is_file() else DEFAULT_RULES
+        result = run(self.database, BoraClient(rules=rules), self.data_dir,
+                     "daily", day, day)
+        if result.get("failed"):
+            raise ValueError("La consulta no se completó. Revisá el detalle en Fallas y reintentá.")
+
+    def generate_summary(self, publication_id: int) -> None:
+        from .summaries import (DEFAULT_SUMMARY_MODEL, DEFAULT_SUMMARY_PROVIDER,
+                                PROMPT_VERSION, GeminiSummarizer, OpenAISummarizer)
+
+        provider = os.environ.get("EPE_SUMMARY_PROVIDER", DEFAULT_SUMMARY_PROVIDER)
+        if provider not in ("gemini", "openai"):
+            raise ValueError("El proveedor de resúmenes no está configurado correctamente")
+        model = os.environ.get("EPE_SUMMARY_MODEL", DEFAULT_SUMMARY_MODEL if provider == "gemini" else "gpt-5.6-terra")
+        key = os.environ.get("GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY", "")
+        if not key:
+            raise ValueError("Falta configurar la clave del proveedor de IA en el servicio local. Podés consultar el PDF original.")
+        with self.database.connect() as connection:
+            row = connection.execute("SELECT publication_date FROM publications WHERE id=?", (publication_id,)).fetchone()
+        if not row:
+            raise ValueError("La publicación no está registrada")
+        candidates = self.database.summary_candidates(model, PROMPT_VERSION,
+                         include_completed=True, publication_date=date.fromisoformat(row["publication_date"]))
+        candidate = next((item for item in candidates if item.publication_id == publication_id), None)
+        if not candidate or not candidate.full_text.strip():
+            raise ValueError("Hace falta un documento descargado con texto para generar el resumen. Consultá nuevamente la fecha.")
+        summarizer = GeminiSummarizer(key, model) if provider == "gemini" else OpenAISummarizer(key, model)
+        try:
+            summary = summarizer.summarize(candidate)
+        except Exception:
+            message = "El proveedor de IA no pudo generar el resumen. Reintentá o consultá el PDF original."
+            self.database.mark_summary_error(candidate, model, PROMPT_VERSION, message)
+            raise ValueError(message) from None
+        self.database.save_summary(candidate, summary, model, PROMPT_VERSION)
 
 
 def open_eml(path: Path) -> None:
     if os.name == "nt":
-        os.startfile(str(path), "open")  # type: ignore[attr-defined]
+        os.startfile(str(path.resolve()), 'open')  # type: ignore[attr-defined]
         return
-    webbrowser.open(path.as_uri())
+    if not webbrowser.open(path.resolve().as_uri()):
+        raise OSError('No se pudo abrir la aplicación de correo.')
 
 
-CSS = """
-:root{--ink:#171715;--paper:#f5f2eb;--panel:#fffdf8;--muted:#66645f;--line:#d8d2c5;--gold:#b88a27;--focus:#624600;--ok:#27643a;--warn:#8b5a11;--bad:#9d2f2f;font-family:Segoe UI,Tahoma,Arial,sans-serif;color:var(--ink);background:var(--paper);scrollbar-color:var(--gold) var(--paper)}
-*{box-sizing:border-box}::selection{background:#d8b763;color:var(--ink)}body{margin:0;overflow-wrap:anywhere}.shell{max-width:1480px;margin:auto;padding:28px 34px 64px}.mast{display:grid;grid-template-columns:1fr auto;gap:24px;border-top:5px solid var(--ink);border-bottom:2px solid var(--gold);padding:18px 0 20px}.mast>*{min-width:0}.context{font-size:.82rem;color:var(--muted);margin-top:7px}h1{font-family:Georgia,serif;font-size:clamp(2rem,4vw,4.2rem);line-height:.95;margin:.22em 0}.date{font-variant-numeric:tabular-nums;font-size:1.1rem}.run{align-self:center;padding:10px 0 0;min-width:240px}.run strong{display:block;font-size:1.15rem}.workflow{border-left:2px solid var(--gold);padding-left:16px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}.metric{padding:18px 16px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric b{display:block;font-family:Georgia,serif;font-size:2rem}.metric span{color:var(--muted);font-size:.82rem}.filters{display:grid;grid-template-columns:180px 210px minmax(220px,1fr) auto;gap:12px;padding:22px 0;align-items:end}label{display:grid;gap:6px;min-width:0;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}input,select,button{width:100%;max-width:100%;font:inherit;border:1px solid #aaa396;background:var(--panel);padding:10px 11px;color:var(--ink);caret-color:var(--focus);min-height:42px}button{cursor:pointer;background:var(--ink);color:white;border-color:var(--ink);font-weight:700}button:hover{background:#383832}a:hover{text-decoration-thickness:2px;color:#102f4e}input:hover,select:hover{border-color:#625e55}input:focus,select:focus,button:focus,a:focus,summary:focus{outline:3px solid var(--focus);outline-offset:2px}.result-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding:9px 0;gap:12px}.result-head h2,.alerts h2{font-family:Georgia,serif;margin:0;font-size:1.45rem}.row{display:grid;grid-template-columns:72px 120px minmax(280px,1.2fr) minmax(300px,2fr) 150px;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);align-items:start}.row>*{min-width:0}.type{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.title{font-family:Georgia,serif;font-size:1.15rem;margin:4px 0}.agency{font-size:.8rem;font-weight:700}.reason{color:var(--muted);line-height:1.5}.status{display:inline-block;padding:5px 8px;border:1px solid currentColor;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.status.direct_epesf,.status.potential_sector_impact{color:var(--ok)}.status.needs_review{color:var(--warn)}.status.not_relevant{color:var(--muted)}details{margin-top:10px}summary{cursor:pointer;font-weight:700;font-size:.82rem}.summary{border-top:2px solid var(--gold);padding-top:10px;line-height:1.55;margin:12px 0}.links{display:flex;flex-direction:column;gap:7px}a{color:#234d75;text-underline-offset:3px}.alerts{border:2px solid var(--bad);padding:16px;margin:22px 0}.alerts h2{color:var(--bad)}.alerts ul{margin-bottom:0}.empty{padding:48px 0;border-bottom:1px solid var(--line);font-family:Georgia,serif;font-size:1.3rem}.foot{margin-top:24px;color:var(--muted);font-size:.78rem}::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:var(--paper)}::-webkit-scrollbar-thumb{background:var(--gold);border:3px solid var(--paper)}
-.actions{display:flex;align-items:center;gap:16px}.selection-form{margin:0}.selection-form button{width:auto}.selection-form button:disabled{cursor:not-allowed;background:#77736a;border-color:#77736a}.pick{display:flex;justify-content:center;padding-top:2px}.pick label{display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-size:.78rem;cursor:pointer}.pick input{width:20px;height:20px;min-height:0;margin:0;accent-color:var(--ink)}.pick input:disabled{cursor:not-allowed}.period-nav{display:flex;gap:14px;align-items:center;margin:-8px 0 12px;font-size:.82rem}.notice{padding:13px 15px;margin:18px 0;border-top:2px solid var(--ok);background:#edf5ed}.notice.error{border-color:var(--bad);background:#f8eaea}
-@media(max-width:1050px){.shell{padding:18px}.mast{grid-template-columns:1fr}.run{border-left:0;border-top:3px solid var(--gold);padding:12px 0}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(2){border-right:0}.filters{grid-template-columns:1fr 1fr}.filters label:last-of-type{grid-column:1/-1}.row{grid-template-columns:1fr}.links{flex-direction:row;flex-wrap:wrap}}
-@media(max-width:520px){.filters{grid-template-columns:1fr}.filters label:last-of-type{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.metric:nth-child(odd){border-right:1px solid var(--line)}.metric:nth-child(even){border-right:0}.result-head{align-items:flex-start;flex-direction:column}.actions{width:100%;justify-content:space-between;flex-wrap:wrap}}
-@media(max-width:360px){.metrics{grid-template-columns:1fr}.metric{border-right:0!important}}
-"""
-
-
-def render_page(app: WebApplication, query: Query) -> bytes:
-    status = app.database.status()
-    latest = app.latest_date()
-    if not query.day and latest and not query.history:
-        query = Query(
-            day=latest, relevance=query.relevance, text=query.text,
-            email_status=query.email_status, email_items=query.email_items,
-            email_files=query.email_files, email_error=query.email_error,
-        )
-    rows = app.publications(query)
-    ready_ids = {int(row["id"]) for row in rows if row.get("conceptual_summary")}
-    ready_count = len(ready_ids)
-    issues = app.operational_issues()
-    last = status.get("last_run") or {}
-    counts = app.date_stats(query.day)
-    options = [
-        ("active", "Seleccionadas y pendientes"), ("all", "Todas"),
-        ("direct_epesf", "Impacto directo"),
-        ("potential_sector_impact", "Impacto potencial"),
-        ("needs_review", "Revisar"), ("not_relevant", "Descartadas"),
-    ]
-    option_html = "".join(
-        f'<option value="{_h(value)}"{" selected" if query.relevance == value else ""}>{_h(label)}</option>'
-        for value, label in options
-    )
-    rows_html = []
-    for row in rows:
-        documents = row.get("documents", [])
-        doc_links = "".join(
-            f'<a href="/document/{doc["id"]}" target="_blank">'
-            f'{"PDF principal" if doc["kind"] == "main" else "Anexo"} · {doc["page_count"] or "?"} pág.</a>'
-            for doc in documents
-        )
-        summary = row.get("conceptual_summary")
-        details = ""
-        if summary or row.get("description"):
-            details = '<details><summary>Ver detalle</summary>'
-            if summary:
-                details += f'<div class="summary"><strong>Resumen conceptual</strong><br>{_h(summary)}'
-                if row.get("epesf_relationship"):
-                    details += f'<br><strong>Relación con EPESF:</strong> {_h(row["epesf_relationship"])}'
-                details += "</div>"
-            if row.get("description"):
-                details += f'<p class="reason">{_h(row["description"])}</p>'
-            details += "</details>"
-        publication_id = int(row["id"])
-        if query.day and publication_id in ready_ids:
-            picker = (
-                f'<label><input type="checkbox" name="selected" '
-                f'value="{publication_id}"> Incluir</label>'
-            )
-        elif query.day:
-            reason = "Sin resumen"
-            picker = f'<label title="{reason}"><input type="checkbox" disabled> {reason}</label>'
-        else:
-            picker = '<span class="context" aria-label="Elegí una fecha para incluir esta publicación">—</span>'
-        rows_html.append(f"""
-          <article class="row">
-            <div class="pick">{picker}</div>
-            <div><div class="type">{_h(row['category'])}</div><div class="date">{_h(row['publication_date'])}</div></div>
-            <div><div class="agency">{_h(row['agency'])}</div><div class="title">{_h(row['title'])}</div><div>{_h(row['reference'])}</div></div>
-            <div><span class="status {_h(row['relevance'])}">{_h(_label(str(row['relevance'])))}</span><p class="reason">{_h(row['relevance_reason'])}</p>{details}</div>
-            <div class="links"><a href="{_h(row['detail_url'])}" target="_blank" rel="noreferrer">Aviso en BORA</a>{doc_links}</div>
-          </article>""")
-    content = "".join(rows_html) or '<div class="empty">No hay publicaciones para estos filtros.</div>'
-    alerts = ""
-    if issues:
-        alert_items = []
-        for issue in issues:
-            link = ""
-            if issue.get("url"):
-                link = f' · <a href="{_h(issue["url"])}" target="_blank" rel="noreferrer">Abrir aviso</a>'
-            alert_items.append(
-                f'<li><strong>{_h(issue["kind"])} · {_h(issue["title"])}</strong>: '
-                f'{_h(issue["detail"])}{link}</li>'
-            )
-        alert_rows = "".join(alert_items)
-        alerts = f'<section class="alerts"><h2>Requiere atención</h2><ul>{alert_rows}</ul></section>'
-    view_parameters = {
-        "date": query.day, "relevance": query.relevance, "q": query.text,
-    }
-    if query.history:
-        view_parameters["history"] = "1"
-    params = urlencode(view_parameters)
-    notice = ""
-    if query.email_status == "prepared":
-        item_label = "publicación" if query.email_items == 1 else "publicaciones"
-        file_label = "archivo" if query.email_files == 1 else "archivos"
-        prepared_verb = "Se preparó" if query.email_items == 1 else "Se prepararon"
-        notice = (
-            f'<div class="notice" role="status">{prepared_verb} {_h(query.email_items)} '
-            f'{item_label} en {_h(query.email_files)} {file_label} .eml y se abrió el correo '
-            "predeterminado. Completá remitente y destinatarios antes de enviar.</div>"
-        )
-    elif query.email_error:
-        notice = f'<div class="notice error" role="alert">{_h(query.email_error)}</div>'
-    hidden = (
-        f'<input type="hidden" name="date" value="{_h(query.day)}">'
-        f'<input type="hidden" name="relevance" value="{_h(query.relevance)}">'
-        f'<input type="hidden" name="q" value="{_h(query.text)}">'
-        + ('<input type="hidden" name="history" value="1">' if query.history else '')
-    )
-    if not query.day:
-        disabled = ' disabled title="Elegí una fecha para preparar el correo"'
-    elif not ready_count:
-        disabled = ' disabled title="No hay publicaciones filtradas con resumen completo"'
-    else:
-        disabled = ""
-    period_label = query.day or "Histórico desde noviembre de 2025"
-    period_nav = (
-        '<div class="period-nav"><a href="/?history=1&relevance=active">Ver todo el histórico</a></div>'
-        if query.day else
-        f'<div class="period-nav"><a href="/?date={_h(latest)}&relevance=active">Volver a la última edición</a></div>'
-    )
-    page = f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boletín EPESF</title><style>{CSS}</style></head>
-    <body><main class="shell"><header class="mast"><div><h1>Boletín EPESF</h1><div class="date">Período consultado: <strong>{_h(period_label)}</strong></div><div class="context">Seguimiento normativo de la Primera Sección del BORA</div></div>
-    <div class="run"><span class="context">Última ejecución</span><strong>{_h(_label(last.get('status')))}</strong><span>{_h(_timestamp(last.get('finished_at')))}</span></div></header><div class="workflow">
-    <section class="metrics" aria-label="Estado general"><div class="metric"><b>{int(counts.get('total') or 0)}</b><span>publicaciones registradas</span></div><div class="metric"><b>{int(counts.get('relevant') or 0)}</b><span>relevantes</span></div><div class="metric"><b>{int(counts.get('downloaded') or 0)}</b><span>documentos descargados</span></div><div class="metric"><b>{int(status.get('failed_dates') or 0)}</b><span>fechas con fallas</span></div></section>
-    {alerts}{notice}<form class="filters" method="get"><label>Fecha<input type="date" name="date" value="{_h(query.day)}"></label><label>Relevancia<select name="relevance">{option_html}</select></label><label>Buscar<input type="search" name="q" value="{_h(query.text)}" placeholder="Organismo, tipo, número o texto"></label><button type="submit">Aplicar filtros</button></form>{period_nav}
-    <section><form class="selection-form" action="/prepare-email" method="post">{hidden}<div class="result-head"><h2>Publicaciones</h2><div class="actions"><a href="/export.csv?{params}">Exportar esta vista</a><button type="submit"{disabled}>Generar correo con seleccionadas</button></div></div>{content}</form></section>
-    </div><footer class="foot">Servicio local · Los datos y documentos permanecen en este equipo.</footer></main></body></html>"""
-    return page.encode("utf-8")
+def render_page(app: WebApplication, query: Query, raw_query: str = "") -> bytes:
+    from .web_views import render
+    return render(app, query, raw_query)
 
 
 def create_handler(app: WebApplication):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
-            if parsed.path != "/prepare-email":
+            if parsed.path not in ("/prepare-email", "/open-email", "/summary", "/consult"):
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
             origin = self.headers.get("Origin", "")
             expected_origin = f"http://{self.headers.get('Host', '')}"
-            if origin and origin != expected_origin:
+            if (urlparse(expected_origin).hostname not in ("127.0.0.1", "localhost")
+                    or (origin and origin != expected_origin)
+                    or self.headers.get("Sec-Fetch-Site") == "cross-site"):
                 self.send_error(HTTPStatus.FORBIDDEN)
                 return
             try:
@@ -370,40 +368,100 @@ def create_handler(app: WebApplication):
             except ValueError:
                 self.send_error(HTTPStatus.BAD_REQUEST)
                 return
-            if length > 8192:
+            if length < 0 or length > 65536:
                 self.send_error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
                 return
-            query = Query.from_url(self.rfile.read(length).decode("utf-8"))
+            try:
+                body = self.rfile.read(length).decode("utf-8")
+            except UnicodeDecodeError:
+                self.send_error(HTTPStatus.BAD_REQUEST)
+                return
+            query = Query.from_url(body)
+            action_values = parse_qs(body)
+            if parsed.path == '/open-email':
+                try:
+                    token = app.request_email_open(query.email_names)
+                    self._send(json.dumps({'token': token, 'status': 'pending'}).encode(), 'application/json', status=HTTPStatus.ACCEPTED)
+                except ValueError as exc:
+                    self._send(json.dumps({'error': str(exc)}, ensure_ascii=False).encode(), 'application/json', status=HTTPStatus.BAD_REQUEST)
+                return
+            if parsed.path in ("/summary", "/consult"):
+                if not app.action_lock.acquire(blocking=False):
+                    self._send(json.dumps({"error": "Hay otra consulta o resumen en curso. Esperá a que termine y reintentá."}).encode(), "application/json", status=HTTPStatus.CONFLICT)
+                    return
+                try:
+                    if parsed.path == "/consult":
+                        app.consult_day(query.day)
+                    else:
+                        # Query.selected_ids is reserved for explicit email/CSV selection.
+                        app.generate_summary(int(action_values.get("id", ["0"])[0]))
+                    self._send(b'{"status":"complete"}', "application/json")
+                except ValueError as exc:
+                    self._send(json.dumps({"error": str(exc)}, ensure_ascii=False).encode("utf-8"), "application/json", status=HTTPStatus.BAD_REQUEST)
+                except Exception:
+                    self._send(json.dumps({"error": "No se pudo completar la acción. Revisá la configuración local, el PDF original y la vista Fallas."}).encode(), "application/json", status=HTTPStatus.BAD_REQUEST)
+                finally:
+                    app.action_lock.release()
+                return
             parameters = {
-                "date": query.day, "relevance": query.relevance, "q": query.text,
+                "date": query.day, "relevance": query.relevance, "category": query.category, "q": query.text,
+                "to": query.end_day, "view": query.view,
             }
             if query.history:
                 parameters["history"] = "1"
+            result: dict[str, object] = {'generated': False}
             try:
-                artifacts = app.prepare_email(query)
-                parameters.update({
-                    "email": "prepared",
-                    "items": str(sum(item.item_count for item in artifacts)),
-                    "files": str(len(artifacts)),
-                })
+                artifacts = app.prepare_email(query, open_files=False)
+                parameters.update(email='prepared', items=str(sum(item.item_count for item in artifacts)), files=str(len(artifacts)), eml=[artifact.path.name for artifact in artifacts])
+                result = {'generated': True, 'files': [{'name': artifact.path.name, 'url': '/email?' + urlencode({'name': artifact.path.name})} for artifact in artifacts]}
+                try:
+                    result['token'] = app.request_email_open(tuple(artifact.path.name for artifact in artifacts))
+                except (OSError, ValueError) as exc:
+                    result['error'] = str(exc)
+                    parameters['email_error'] = str(exc)
             except (OSError, ValueError) as exc:
                 parameters["email_error"] = str(exc)
+                result['error'] = str(exc)
+            redirect = '/?' + urlencode(parameters, doseq=True)
+            if 'application/json' in self.headers.get('Accept', ''):
+                self._send(json.dumps(result, ensure_ascii=False).encode(), 'application/json', status=HTTPStatus.OK if result['generated'] else HTTPStatus.BAD_REQUEST)
+                return
             self.send_response(HTTPStatus.SEE_OTHER)
-            self.send_header("Location", "/?" + urlencode(parameters))
+            self.send_header("Location", redirect)
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
 
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             if parsed.path == "/":
-                self._send(render_page(app, Query.from_url(parsed.query)), "text/html; charset=utf-8")
+                self._send(render_page(app, Query.from_url(parsed.query), parsed.query), "text/html; charset=utf-8")
+                return
+            if parsed.path == "/ui.js":
+                self._send(SCRIPT.encode("utf-8"), "text/javascript; charset=utf-8")
                 return
             if parsed.path == "/health":
                 self._send(json.dumps({"status": "ok"}).encode(), "application/json")
                 return
+            if parsed.path == '/email':
+                name = parse_qs(parsed.query).get('name', [''])[0]
+                path = app.email_file(name)
+                if not path:
+                    self.send_error(HTTPStatus.NOT_FOUND)
+                    return
+                self._send(path.read_bytes(), 'message/rfc822', path.name)
+                return
+            if parsed.path == '/email-open-status':
+                state = app.email_open_status(parse_qs(parsed.query).get('token', [''])[0])
+                if state is None:
+                    self.send_error(HTTPStatus.NOT_FOUND)
+                    return
+                self._send(json.dumps(state, ensure_ascii=False).encode(), 'application/json')
+                return
             if parsed.path == "/export.csv":
                 query = Query.from_url(parsed.query)
                 rows = app.publications(query)
+                if query.selected_ids:
+                    rows = [row for row in rows if int(row["id"]) in query.selected_ids]
                 stream = io.StringIO(newline="")
                 fields = ["publication_date", "category", "agency", "title", "reference", "relevance", "relevance_reason", "detail_url"]
                 writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
@@ -423,13 +481,13 @@ def create_handler(app: WebApplication):
                 return
             self.send_error(HTTPStatus.NOT_FOUND)
 
-        def _send(self, body: bytes, content_type: str, filename: str | None = None, inline: bool = False) -> None:
-            self.send_response(HTTPStatus.OK)
+        def _send(self, body: bytes, content_type: str, filename: str | None = None, inline: bool = False, status: HTTPStatus = HTTPStatus.OK) -> None:
+            self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'; form-action 'self'")
+            self.send_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
             if filename:
                 disposition = "inline" if inline else "attachment"
                 self.send_header("Content-Disposition", f'{disposition}; filename="{filename.encode("ascii", "ignore").decode()}"')

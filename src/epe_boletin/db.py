@@ -11,6 +11,7 @@ from typing import Iterator
 from .documents import DocumentSection
 from .mail import BulletinItem, EmailArtifact
 from .models import Publication
+from .priority import publication_sort_key
 from .summaries import ConceptualSummary, SummaryCandidate, source_digest
 
 SCHEMA_VERSION = 6
@@ -570,7 +571,7 @@ class Database:
             parameters.extend(publication_ids)
         with self.connect() as connection:
             rows = connection.execute(f"""
-                SELECT p.id,p.source_id,p.title,p.agency,p.publication_date,p.detail_url,
+                SELECT p.id,p.source_id,p.title,p.agency,p.publication_date,p.detail_url,p.relevance,
                        s.conceptual_summary,s.epesf_relationship,s.effective_date
                 FROM publications p
                 JOIN summaries s ON s.id=(
@@ -581,10 +582,9 @@ class Database:
                 WHERE p.publication_date=?
                   AND p.relevance IN ('direct_epesf','potential_sector_impact')
                   {id_clause}
-                ORDER BY p.agency,p.title
             """, parameters).fetchall()
             results: list[BulletinItem] = []
-            for row in rows:
+            for row in sorted((dict(row) for row in rows), key=publication_sort_key):
                 documents = connection.execute("""
                     SELECT path FROM documents WHERE publication_id=?
                     ORDER BY CASE kind WHEN 'main' THEN 0 ELSE 1 END,kind,id

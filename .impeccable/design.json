@@ -1,0 +1,486 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T10:51:51Z",
+  "title": "Design System: Boletín Oficial EPESF",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "paper",
+        "tonalRamp": [
+          "oklch(0.15 0.003 250)",
+          "oklch(0.26 0.003 250)",
+          "oklch(0.38 0.003 250)",
+          "oklch(0.5 0.003 250)",
+          "oklch(0.62 0.003 250)",
+          "oklch(0.74 0.003 250)",
+          "oklch(0.86 0.003 250)",
+          "oklch(0.95 0.003 250)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "surface",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.26 0 0)",
+          "oklch(0.38 0 0)",
+          "oklch(0.5 0 0)",
+          "oklch(0.62 0 0)",
+          "oklch(0.74 0 0)",
+          "oklch(0.86 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "surface-sunk": {
+        "role": "neutral",
+        "displayName": "surface-sunk",
+        "tonalRamp": [
+          "oklch(0.15 0.006 250)",
+          "oklch(0.26 0.006 250)",
+          "oklch(0.38 0.006 250)",
+          "oklch(0.5 0.006 250)",
+          "oklch(0.62 0.006 250)",
+          "oklch(0.74 0.006 250)",
+          "oklch(0.86 0.006 250)",
+          "oklch(0.95 0.006 250)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "ink",
+        "tonalRamp": [
+          "oklch(0.15 0.02 250)",
+          "oklch(0.26 0.02 250)",
+          "oklch(0.38 0.02 250)",
+          "oklch(0.5 0.02 250)",
+          "oklch(0.62 0.02 250)",
+          "oklch(0.74 0.02 250)",
+          "oklch(0.86 0.02 250)",
+          "oklch(0.95 0.02 250)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "ink-2",
+        "tonalRamp": [
+          "oklch(0.15 0.018 250)",
+          "oklch(0.26 0.018 250)",
+          "oklch(0.38 0.018 250)",
+          "oklch(0.5 0.018 250)",
+          "oklch(0.62 0.018 250)",
+          "oklch(0.74 0.018 250)",
+          "oklch(0.86 0.018 250)",
+          "oklch(0.95 0.018 250)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "ink-3",
+        "tonalRamp": [
+          "oklch(0.15 0.015 250)",
+          "oklch(0.26 0.015 250)",
+          "oklch(0.38 0.015 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.015 250)",
+          "oklch(0.86 0.015 250)",
+          "oklch(0.95 0.015 250)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "line",
+        "tonalRamp": [
+          "oklch(0.15 0.006 250)",
+          "oklch(0.26 0.006 250)",
+          "oklch(0.38 0.006 250)",
+          "oklch(0.5 0.006 250)",
+          "oklch(0.62 0.006 250)",
+          "oklch(0.74 0.006 250)",
+          "oklch(0.86 0.006 250)",
+          "oklch(0.95 0.006 250)"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "line-strong",
+        "tonalRamp": [
+          "oklch(0.15 0.01 250)",
+          "oklch(0.26 0.01 250)",
+          "oklch(0.38 0.01 250)",
+          "oklch(0.5 0.01 250)",
+          "oklch(0.62 0.01 250)",
+          "oklch(0.74 0.01 250)",
+          "oklch(0.86 0.01 250)",
+          "oklch(0.95 0.01 250)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "accent",
+        "tonalRamp": [
+          "oklch(0.15 0.15 255)",
+          "oklch(0.26 0.15 255)",
+          "oklch(0.38 0.15 255)",
+          "oklch(0.5 0.15 255)",
+          "oklch(0.62 0.15 255)",
+          "oklch(0.74 0.15 255)",
+          "oklch(0.86 0.15 255)",
+          "oklch(0.95 0.15 255)"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "accent-ink",
+        "tonalRamp": [
+          "oklch(0.15 0.14 255)",
+          "oklch(0.26 0.14 255)",
+          "oklch(0.38 0.14 255)",
+          "oklch(0.5 0.14 255)",
+          "oklch(0.62 0.14 255)",
+          "oklch(0.74 0.14 255)",
+          "oklch(0.86 0.14 255)",
+          "oklch(0.95 0.14 255)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "accent-soft",
+        "tonalRamp": [
+          "oklch(0.15 0.03 255)",
+          "oklch(0.26 0.03 255)",
+          "oklch(0.38 0.03 255)",
+          "oklch(0.5 0.03 255)",
+          "oklch(0.62 0.03 255)",
+          "oklch(0.74 0.03 255)",
+          "oklch(0.86 0.03 255)",
+          "oklch(0.95 0.03 255)"
+        ]
+      },
+      "slate": {
+        "role": "neutral",
+        "displayName": "slate",
+        "tonalRamp": [
+          "oklch(0.15 0.03 255)",
+          "oklch(0.26 0.03 255)",
+          "oklch(0.38 0.03 255)",
+          "oklch(0.5 0.03 255)",
+          "oklch(0.62 0.03 255)",
+          "oklch(0.74 0.03 255)",
+          "oklch(0.86 0.03 255)",
+          "oklch(0.95 0.03 255)"
+        ]
+      },
+      "on-slate": {
+        "role": "neutral",
+        "displayName": "on-slate",
+        "tonalRamp": [
+          "oklch(0.15 0.006 250)",
+          "oklch(0.26 0.006 250)",
+          "oklch(0.38 0.006 250)",
+          "oklch(0.5 0.006 250)",
+          "oklch(0.62 0.006 250)",
+          "oklch(0.74 0.006 250)",
+          "oklch(0.86 0.006 250)",
+          "oklch(0.95 0.006 250)"
+        ]
+      },
+      "sig-alta": {
+        "role": "semantic",
+        "displayName": "sig-alta",
+        "tonalRamp": [
+          "oklch(0.15 0.13 25)",
+          "oklch(0.26 0.13 25)",
+          "oklch(0.38 0.13 25)",
+          "oklch(0.5 0.13 25)",
+          "oklch(0.62 0.13 25)",
+          "oklch(0.74 0.13 25)",
+          "oklch(0.86 0.13 25)",
+          "oklch(0.95 0.13 25)"
+        ]
+      },
+      "sig-media": {
+        "role": "semantic",
+        "displayName": "sig-media",
+        "tonalRamp": [
+          "oklch(0.15 0.1 75)",
+          "oklch(0.26 0.1 75)",
+          "oklch(0.38 0.1 75)",
+          "oklch(0.5 0.1 75)",
+          "oklch(0.62 0.1 75)",
+          "oklch(0.74 0.1 75)",
+          "oklch(0.86 0.1 75)",
+          "oklch(0.95 0.1 75)"
+        ]
+      },
+      "sig-ok": {
+        "role": "semantic",
+        "displayName": "sig-ok",
+        "tonalRamp": [
+          "oklch(0.15 0.11 150)",
+          "oklch(0.26 0.11 150)",
+          "oklch(0.38 0.11 150)",
+          "oklch(0.5 0.11 150)",
+          "oklch(0.62 0.11 150)",
+          "oklch(0.74 0.11 150)",
+          "oklch(0.86 0.11 150)",
+          "oklch(0.95 0.11 150)"
+        ]
+      },
+      "sig-info": {
+        "role": "semantic",
+        "displayName": "sig-info",
+        "tonalRamp": [
+          "oklch(0.15 0.11 240)",
+          "oklch(0.26 0.11 240)",
+          "oklch(0.38 0.11 240)",
+          "oklch(0.5 0.11 240)",
+          "oklch(0.62 0.11 240)",
+          "oklch(0.74 0.11 240)",
+          "oklch(0.86 0.11 240)",
+          "oklch(0.95 0.11 240)"
+        ]
+      },
+      "sig-soft-a": {
+        "role": "semantic",
+        "displayName": "sig-soft-a",
+        "tonalRamp": [
+          "oklch(0.15 0.03 25)",
+          "oklch(0.26 0.03 25)",
+          "oklch(0.38 0.03 25)",
+          "oklch(0.5 0.03 25)",
+          "oklch(0.62 0.03 25)",
+          "oklch(0.74 0.03 25)",
+          "oklch(0.86 0.03 25)",
+          "oklch(0.95 0.03 25)"
+        ]
+      },
+      "sig-soft-m": {
+        "role": "semantic",
+        "displayName": "sig-soft-m",
+        "tonalRamp": [
+          "oklch(0.15 0.03 75)",
+          "oklch(0.26 0.03 75)",
+          "oklch(0.38 0.03 75)",
+          "oklch(0.5 0.03 75)",
+          "oklch(0.62 0.03 75)",
+          "oklch(0.74 0.03 75)",
+          "oklch(0.86 0.03 75)",
+          "oklch(0.95 0.03 75)"
+        ]
+      },
+      "sig-soft-ok": {
+        "role": "semantic",
+        "displayName": "sig-soft-ok",
+        "tonalRamp": [
+          "oklch(0.15 0.03 150)",
+          "oklch(0.26 0.03 150)",
+          "oklch(0.38 0.03 150)",
+          "oklch(0.5 0.03 150)",
+          "oklch(0.62 0.03 150)",
+          "oklch(0.74 0.03 150)",
+          "oklch(0.86 0.03 150)",
+          "oklch(0.95 0.03 150)"
+        ]
+      },
+      "sig-soft-i": {
+        "role": "semantic",
+        "displayName": "sig-soft-i",
+        "tonalRamp": [
+          "oklch(0.15 0.03 240)",
+          "oklch(0.26 0.03 240)",
+          "oklch(0.38 0.03 240)",
+          "oklch(0.5 0.03 240)",
+          "oklch(0.62 0.03 240)",
+          "oklch(0.74 0.03 240)",
+          "oklch(0.86 0.03 240)",
+          "oklch(0.95 0.03 240)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Título de topbar",
+        "purpose": "Identidad breve sin serif."
+      },
+      "code": {
+        "displayName": "Identificadores mono",
+        "purpose": "Expedientes, fechas y páginas; fallbacks offline."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-1",
+        "value": "0 1px 2px oklch(.26 .020 250 / .06)",
+        "purpose": "Topbar al desplazar."
+      },
+      {
+        "name": "shadow-2",
+        "value": "0 6px 20px oklch(.26 .020 250 / .10)",
+        "purpose": "Barra de selección y popover de presets."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state",
+        "value": "160ms ease-out",
+        "purpose": "Fondo de fila y rotación de chevron."
+      },
+      {
+        "name": "metrics-collapse",
+        "value": "max-height 160ms ease-out",
+        "purpose": "Colapso de la tira de 64px a 0 en escritorio."
+      },
+      {
+        "name": "selection-enter",
+        "value": "transform 160ms ease-out",
+        "purpose": "Entrada desde translate(-50%,100%) a translate(-50%,0)."
+      },
+      {
+        "name": "progress",
+        "value": "1s ease-out infinite",
+        "purpose": "Barra superior de carga de 2px."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "presets",
+        "value": "1250px"
+      },
+      {
+        "name": "filters-two-rows",
+        "value": "1150px"
+      },
+      {
+        "name": "row-two-column",
+        "value": "1100px"
+      },
+      {
+        "name": "filters-two-columns",
+        "value": "900px"
+      },
+      {
+        "name": "mobile",
+        "value": "700px"
+      },
+      {
+        "name": "day-arrows-hidden",
+        "value": "520px"
+      },
+      {
+        "name": "narrow",
+        "value": "400px"
+      }
+    ],
+    "sourceTruth": {
+      "direction": "estilo_web_v2.md",
+      "tokens": "src/epe_boletin/web_ui.py",
+      "markup": "src/epe_boletin/web_views.py",
+      "surface": ".impeccable/surfaces/src-epe-boletin-web-ui-py.md",
+      "ramps": "Interpolaciones de lightness para el panel, no colores normativos de la UI.",
+      "review": ".impeccable/review",
+      "acceptedExceptions": [
+        "Borde izquierdo de 3px del detalle (§4.7 v2).",
+        "Transición max-height de métricas (§2.1 v2)."
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de filtro o correo.",
+      "html": "<button class=\"ds-primary\">Aplicar</button>",
+      "css": ".ds-primary{font:600 14px \"Archivo\",\"Segoe UI\",system-ui,sans-serif;height:40px;padding:0 12px;border:1px solid var(--accent,oklch(.50 .15 255));border-radius:6px;background:var(--accent,oklch(.50 .15 255));color:var(--surface,oklch(1 0 0));cursor:pointer}.ds-primary:hover{background:var(--accent-ink,oklch(.40 .14 255))}.ds-primary:focus-visible{outline:2px solid var(--accent,oklch(.50 .15 255));outline-offset:2px;}.ds-primary:disabled{background:var(--surface-sunk,oklch(.965 .006 250));color:var(--ink-3,oklch(.53 .015 250));border-color:var(--line-strong,oklch(.64 .010 250));cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Resumen y reintentos visibles.",
+      "html": "<button class=\"ds-secondary\">Generar resumen</button>",
+      "css": ".ds-secondary{font:600 14px \"Archivo\",\"Segoe UI\",system-ui,sans-serif;height:40px;padding:0 12px;border:1px solid var(--line-strong,oklch(.64 .010 250));border-radius:6px;background:var(--surface,oklch(1 0 0));color:var(--ink,oklch(.26 .020 250));cursor:pointer}.ds-secondary:hover{border-color:var(--accent,oklch(.50 .15 255));color:var(--accent-ink,oklch(.40 .14 255))}.ds-secondary:focus-visible{outline:2px solid var(--accent,oklch(.50 .15 255));outline-offset:2px;}.ds-secondary:disabled{color:var(--ink-3,oklch(.53 .015 250));cursor:not-allowed}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Búsqueda etiquetada con icono inline y borde de contraste.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"7\" cy=\"7\" r=\"4.5\"/><path d=\"m10.5 10.5 3 3\"/></svg><input type=\"search\" aria-label=\"Buscar\" placeholder=\"Organismo, tipo, número o texto\"></label>",
+      "css": ".ds-search{position:relative;display:inline-flex;align-items:center}.ds-search svg{position:absolute;left:12px;width:14px;height:14px;stroke:var(--ink,oklch(.26 .020 250));stroke-width:1.7;fill:none}.ds-search input{font:14px \"Archivo\",\"Segoe UI\",system-ui,sans-serif;height:40px;padding:0 32px;border:1px solid var(--line-strong,oklch(.64 .010 250));border-radius:6px;background:var(--surface,oklch(1 0 0));color:var(--ink,oklch(.26 .020 250));caret-color:var(--accent,oklch(.50 .15 255))}.ds-search input::placeholder{color:var(--ink-3,oklch(.53 .015 250));opacity:1}.ds-search input:hover{border-color:var(--line-strong,oklch(.64 .010 250))}.ds-search input:focus-visible{outline:2px solid var(--accent,oklch(.50 .15 255));outline-offset:2px;}"
+    },
+    {
+      "name": "Period Control",
+      "kind": "input",
+      "refersTo": "period-control",
+      "description": "Un cuadro Desde/Hasta abre el calendario de selección continua; dos meses en escritorio, uno en móvil.",
+      "html": "<button class=\"ds-period\" type=\"button\" aria-label=\"Elegir período: desde 11/09/2026 hasta 15/09/2026\"><span><small>Desde</small><b>11/09/2026</b></span><span><small>Hasta</small><b>15/09/2026</b></span><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><rect x=\"2\" y=\"3\" width=\"12\" height=\"11\" rx=\"1\"/><path d=\"M5 2v3M11 2v3M2 7h12\"/></svg></button>",
+      "css": ".ds-period{display:flex;align-items:center;gap:8px;width:min(320px,100%);height:40px;padding:2px 8px;border:1px solid var(--line-strong,oklch(.64 .010 250));border-radius:6px;background:var(--surface,oklch(1 0 0));color:var(--ink,oklch(.26 .020 250));font-family:\"Archivo\",\"Segoe UI\",system-ui,sans-serif;text-align:left;cursor:pointer}.ds-period span{display:grid;min-width:0;flex:1;line-height:1.25}.ds-period span+span{border-left:1px solid var(--line,oklch(.915 .006 250));padding-left:8px}.ds-period small{font-size:12px;color:var(--ink-3,oklch(.53 .015 250))}.ds-period b{font-size:13px;font-weight:400}.ds-period svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.7;fill:none}.ds-period:hover{border-color:var(--accent,oklch(.50 .15 255))}.ds-period:focus-visible{outline:2px solid var(--accent,oklch(.50 .15 255));outline-offset:2px}"
+    },
+    {
+      "name": "Active Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Filtro activo removible con texto y foco.",
+      "html": "<a class=\"ds-chip\" href=\"#filters\" aria-label=\"Quitar filtro de relevancia\">Relevantes <svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"m4 4 8 8M12 4l-8 8\"/></svg></a>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:4px;font:12px \"Archivo\",\"Segoe UI\",system-ui,sans-serif;padding:4px 8px;border:1px solid var(--accent,oklch(.50 .15 255));border-radius:3px;background:var(--accent-soft,oklch(.955 .030 255));color:var(--accent-ink,oklch(.40 .14 255));text-decoration:none}.ds-chip svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.7;fill:none}.ds-chip:hover{color:var(--accent-ink,oklch(.40 .14 255));text-decoration:underline;text-decoration-thickness:2px}.ds-chip:focus-visible{outline:2px solid var(--accent,oklch(.50 .15 255));outline-offset:2px;}"
+    },
+    {
+      "name": "Topbar Navigation",
+      "kind": "nav",
+      "refersTo": "topbar",
+      "description": "Vistas dentro de una sola banda oscura.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Vistas\"><a href=\"#day\" aria-current=\"page\">Día</a><a href=\"#history\">Histórico</a><a href=\"#failures\">Fallas</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:stretch;gap:16px;min-height:76px;padding:0 clamp(16px,2vw,40px);background:var(--slate,oklch(.28 .030 255));font:14px \"Archivo\",\"Segoe UI\",system-ui,sans-serif}.ds-nav a{display:flex;align-items:center;padding:0 8px;color:var(--on-slate,oklch(.97 .006 250));text-decoration:none}.ds-nav a:hover{background:oklch(.35 .030 255);color:var(--on-slate,oklch(.97 .006 250))}.ds-nav a[aria-current=page]{box-shadow:inset 0 -2px 0 currentColor;font-weight:600}.ds-nav a:focus-visible{outline:2px solid var(--accent,oklch(.50 .15 255));outline-offset:2px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "El instrumento de revisión diaria",
+    "overview": "Grafito sobre blanco frío: una interfaz sobria y precisa donde el trabajo normativo\nmanda. El azul institucional señala acciones, foco y selección; la sans mantiene\nuna sola voz y la mono distingue identificadores de la prosa. La densidad se\nresuelve con alineación, jerarquía y cromado corto, no con texto diminuto.\n\nEste merge conserva decisiones funcionales y accesibles del diseño anterior, pero\nsustituye expresamente crema, terracota y serif por el mundo elegido en\n`estilo_web_v2.md`. La guía fija la dirección; los valores realmente implementados\nen `src/epe_boletin/web_ui.py` son la fuente de verdad del frontmatter.\n`web_views.py` define componentes semánticos y el contrato está en\n`.impeccable/surfaces/src-epe-boletin-web-ui-py.md`. `PRODUCT.md` conserva\nel propósito y las reglas operativas; este archivo documenta la interfaz aprobada.\nLas decisiones de composición de esta superficie no se generalizan a toda página.",
+    "keyCharacteristics": [
+      "Instrumento frío, legible y sin serif ni superficies cálidas.",
+      "Una sans de interfaz, una mono de datos y ningún servidor externo de fuentes.",
+      "Registros planos alineados; selección y fallas visibles también mediante texto.",
+      "Cromado breve, controles nativos y estados recuperables."
+    ],
+    "rules": [
+      {
+        "name": "One Accent",
+        "body": "Sólo el azul institucional dirige la acción; los colores semánticos comunican un estado con una etiqueta textual, nunca por sí solos.",
+        "section": "colors"
+      },
+      {
+        "name": "Full Ink",
+        "body": "El texto está a opacidad plena; la jerarquía usa tintas explícitas. La atenuación temporal de la lista durante carga no es un color de texto.",
+        "section": "colors"
+      },
+      {
+        "name": "Identifier",
+        "body": "Los códigos identifican y la prosa explica: mono para datos, sans para títulos y lectura; nunca serif ni texto inferior a 12px.",
+        "section": "typography"
+      },
+      {
+        "name": "Flat Work",
+        "body": "El registro permanece plano; sólo los instrumentos flotantes o pegajosos reciben sombra.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** usar tokens reales y fallback local sin red de fuentes.",
+      "**Do** preservar etiquetas reales, texto de estado, foco visible y movimiento reducido.",
+      "**Do** comprobar esta superficie a 1920×1080 sin bandas laterales grandes y a 1366×768 con primera fila visible y al menos dos filas completas; verificar también 1024, 700, 390 y 320px sin desborde horizontal.",
+      "**Do** mantener referencias completas en title y wrapping dentro del detalle.",
+      "**Do** dar causa y salida a vacíos y errores; conservar el borrador recuperable."
+    ],
+    "donts": [
+      "**Don't** reintroducir crema, terracota, serif, negro puro o un segundo acento decorativo.",
+      "**Don't** reducir texto por debajo de 12px ni usar opacidad para jerarquía tipográfica.",
+      "**Don't** convertir métricas en tarjetas altas, agregar otra banda de título o cebrear registros.",
+      "**Don't** confundir indicios o resumen IA con texto oficial o aprobación.",
+      "**Don't** usar sombras en filas ni generalizar borde lateral o transición max-height.",
+      "**Don't** prometer fuentes autohospedadas, modo oscuro o altos rígidos que no existen."
+    ]
+  }
+}

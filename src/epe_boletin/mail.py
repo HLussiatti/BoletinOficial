@@ -49,21 +49,15 @@ def _message(items: list[BulletinItem], day: date, sender: str,
     if recipients:
         message["To"] = ", ".join(recipients)
 
-    plain_parts = [
-        f"Novedades normativas nacionales publicadas el {day:%d/%m/%Y}.",
-        f"Publicaciones seleccionadas: {len(items)}.",
-    ]
-    html_parts = [
-        "<h1>Novedades normativas nacionales</h1>",
-        f"<p>Publicadas el {day:%d/%m/%Y}. "
-        f"Se seleccionaron {len(items)} publicaciones.</p>",
-    ]
+    plain_parts: list[str] = []
+    html_parts: list[str] = []
     for item in items:
         plain_parts.extend([
-            "", item.title, item.agency, item.conceptual_summary,
+            item.title, item.agency, item.conceptual_summary,
             f"Relación con EPESF: {item.epesf_relationship}",
             f"Vigencia: {item.effective_date}", f"Fuente: {item.detail_url}",
         ])
+        plain_parts.append("")
         html_parts.extend([
             f"<h2>{html.escape(item.title)}</h2>",
             f"<p><strong>{html.escape(item.agency)}</strong></p>",

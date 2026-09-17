@@ -14,6 +14,64 @@ from epe_boletin.web import Query, WebApplication, render_page
 
 
 class WebApplicationTest(unittest.TestCase):
+    def test_impact_priority_is_shared_by_daily_history_and_email_views(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data_dir = Path(folder)
+            database = Database(data_dir / "boletin.sqlite3")
+            database.migrate()
+            entries = (
+                ("1", "2026-09-01", "ENTE NACIONAL REGULADOR DE LA ELECTRICIDAD", "potential_sector_impact"),
+                ("2", "2026-09-01", "MINISTERIO DE ECONOMÍA - Secretaría de Energía", "potential_sector_impact"),
+                ("3", "2026-09-01", "ENTE NACIONAL REGULADOR DE LA ELECTRICIDAD", "direct_epesf"),
+                ("4", "2026-09-01", "SECRETARÍA DE ENERGÍA", "needs_review"),
+                ("5", "2026-09-01", "SECRETARÍA DE ENERGÍA", "not_relevant"),
+                ("6", "2026-08-31", "SECRETARÍA DE ENERGÍA", "direct_epesf"),
+                ("7", "2026-09-01", "ENTE NACIONAL REGULADOR DEL GAS Y LA ELECTRICIDAD", "potential_sector_impact"),
+            )
+            ids = []
+            for source_id, day, agency, relevance in entries:
+                publication_id = database.upsert_publication(Publication(
+                    source_id=source_id, publication_date=date.fromisoformat(day),
+                    section="primera", category="RESOLUCIONES", agency=agency,
+                    title=f"Resolución {source_id}/2026", reference="", description="",
+                    detail_url=f"https://example.test/{source_id}",
+                    relevance=relevance, relevance_reason="Clasificación registrada",
+                ), True)
+                ids.append(publication_id)
+                if relevance not in ("direct_epesf", "potential_sector_impact"):
+                    continue
+                pdf = data_dir / f"document_{source_id}.pdf"
+                pdf.write_bytes(b"%PDF-1.4\n%%EOF\n")
+                database.save_document(
+                    publication_id, pdf, source_id * 64, pdf.stat().st_size,
+                    f"https://example.test/{source_id}", extracted_text="Texto normativo",
+                    extraction_status="complete",
+                )
+            for candidate in database.summary_candidates("test", "test"):
+                database.save_summary(
+                    candidate, ConceptualSummary("Resumen", "Relación", "Publicación", True),
+                    "test", "test",
+                )
+            app = WebApplication(database, data_dir, lambda _: None)
+            daily = app.publications(Query(day="2026-09-01"))
+            history = app.publications(Query(history=True, relevance="all"))
+            query = Query(day="2026-09-01", selected_ids=tuple(reversed(ids)))
+            artifacts = app.prepare_email(query)
+            message = BytesParser(policy=policy.default).parsebytes(
+                artifacts[0].path.read_bytes()
+            )
+            body = message.get_body(preferencelist=("plain",)).get_content()
+
+            self.assertEqual(["3", "2", "1", "7", "4"], [r["source_id"] for r in daily])
+            self.assertEqual(["3", "2", "1", "7", "4", "5", "6"], [r["source_id"] for r in history])
+            self.assertEqual(("3", "2", "1", "7"), artifacts[0].source_ids)
+            positions = [body.index(f"Resolución {source_id}/2026") for source_id in artifacts[0].source_ids]
+            self.assertEqual(sorted(positions), positions)
+            self.assertEqual(
+                {source_id: relevance for source_id, _, _, relevance in entries},
+                {str(r["source_id"]): r["relevance"] for r in history},
+            )
+
     def test_default_view_hides_discarded_publications(self):
         with tempfile.TemporaryDirectory() as folder:
             data_dir = Path(folder)

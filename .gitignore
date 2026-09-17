@@ -12,5 +12,7 @@ dist/
 build/
 *.egg-info/
 *.spec
+.impeccable/review/
+.impeccable/mocks/
 api_key.txt
 gemini_api_key.txt

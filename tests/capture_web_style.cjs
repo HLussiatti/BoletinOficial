@@ -1,0 +1,166 @@
+// Run with the bundled Playwright package. All writes are test captures.
+const {chromium} = require(process.env.EPESF_PLAYWRIGHT || 'playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const out = '.impeccable/review';
+fs.mkdirSync(out, {recursive: true});
+
+(async () => {
+  const browser = await chromium.launch({channel: 'msedge', headless: true});
+  try {
+    const page = await browser.newPage({viewport: {width: 1366, height: 768}});
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const base = 'http://127.0.0.1:8871';
+    await page.goto(base);
+    await page.screenshot({path: `${out}/user-1366.png`, fullPage: true});
+    const first = await page.locator('.row').first().boundingBox();
+    const visible = await page.locator('.row').evaluateAll(rows => rows.filter(r => r.getBoundingClientRect().bottom <= 768).length);
+    console.log(JSON.stringify({firstRow: first.y, completeVisibleRows: visible}));
+    assert.ok(first.y <= 430, 'First row must remain visible on a 768px-tall desktop');
+    assert.ok(visible >= 1, 'A complete publication must remain visible');
+    assert.equal(await page.locator('.metric').count(), 5);
+    assert.equal(await page.getByText('con documento', {exact: true}).count(), 0);
+    assert.equal(await page.locator('.column-head #export-view, .column-head [data-density]').count(), 0);
+    assert.equal(await page.locator('.results-toolbar #export-view').count(), 1);
+    assert.equal(await page.locator('#to').inputValue(), await page.locator('#date').inputValue());
+    await page.locator('#help-toggle').click();
+    assert.ok(await page.locator('.shortcut-line').evaluate(line => {
+      const first = line.firstElementChild.getBoundingClientRect();
+      const center = (first.top + first.bottom) / 2;
+      return [...line.children].every(child => {
+        const rect = child.getBoundingClientRect();
+        return Math.abs((rect.top + rect.bottom) / 2 - center) <= 1;
+      });
+    }), 'Shortcuts stay on one line');
+    await page.locator('#help-toggle').click();
+    const comfortableHeight = first.height;
+    await page.locator('#select-all').check();
+    assert.equal(await page.locator('#selection-bar').isVisible(), true);
+    await page.locator('input[name=selected]').first().uncheck();
+    assert.equal(await page.locator('#select-all').evaluate(el => el.indeterminate), true);
+    await page.screenshot({path: `${out}/selection.png`});
+    await page.locator('#selection-bar [data-select=none]').click();
+    assert.equal(await page.locator('#selection-bar').isVisible(), false);
+    await page.route('**/prepare-email', route => route.fulfill({json: {generated: true, token: 'test-token', files: []}}));
+    await page.route('**/email-open-status?*', route => route.fulfill({json: {status: 'complete'}}));
+    await page.locator('input[name=selected]').first().check();
+    await page.locator('#selection-bar [data-email]').click();
+    await page.getByRole('status').filter({hasText: 'No se envió nada automáticamente.'}).waitFor();
+    assert.equal(await page.locator('.column-head [data-email]').count(), 0);
+    // Remove the simulated confirmation before checking the default chrome budget.
+    await page.evaluate(() => document.querySelector('#action-notice').hidden = true);
+    const top = await page.evaluate(() => scrollY);
+    await page.locator('.title a').first().click();
+    assert.equal(await page.locator('.row details').first().getAttribute('open'), '');
+    assert.equal(await page.evaluate(() => scrollY), top);
+    await page.screenshot({path: `${out}/detail.png`});
+    await page.locator('.title a').first().click();
+    await page.getByRole('button', {name: 'Compacta', exact: true}).click();
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('compact')), true);
+    const compactHeight = (await page.locator('.row').first().boundingBox()).height;
+    assert.ok(comfortableHeight > compactHeight, 'Comfortable density must add breathing room');
+    await page.reload();
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('compact')), true);
+    await page.getByRole('button', {name: 'Cómoda', exact: true}).click();
+    await page.evaluate(() => scrollTo(0, 400));
+    await page.waitForTimeout(200);
+    const chrome = await page.evaluate(() => document.querySelector('.topbar').offsetHeight + document.querySelector('.filters').offsetHeight + document.querySelector('.column-head').offsetHeight);
+    console.log('Sticky chrome:', chrome);
+    assert.ok(chrome <= 225, 'Scrolled chrome must leave most of the viewport for results');
+    await page.screenshot({path: `${out}/scrolled.png`});
+    await page.evaluate(() => scrollTo(0, 0));
+    for (const [width, height, name] of [[1920, 1080, 'user-1920'], [1440, 900, 'desktop'], [1250, 800], [1151, 800], [1150, 800], [1101, 800], [1024, 768, 'tablet'], [901, 800], [900, 800], [701, 800], [700, 800, 'narrow'], [520, 800], [401, 800], [400, 800], [390, 844, 'mobile'], [320, 700, 'small-mobile']]) {
+      await page.setViewportSize({width, height});
+      if (name) await page.screenshot({path: `${out}/${name}.png`, fullPage: true});
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `No horizontal overflow at ${width}px`);
+      assert.ok(await page.locator('.row').first().isVisible(), `Results stay available at ${width}px`);
+      if (width === 1920) {
+        const topbar = await page.locator('.topbar').boundingBox();
+        assert.equal(topbar.x, 0, 'The top bar spans the wide viewport');
+        assert.equal(topbar.width, 1920, 'No wide empty side bands');
+      }
+      const contained = await page.locator('.row').first().evaluate(row => {
+        const outer = row.getBoundingClientRect();
+        return [...row.children].every(child => {
+          const rect = child.getBoundingClientRect();
+          return rect.left >= outer.left - 1 && rect.right <= outer.right + 1 && rect.bottom <= outer.bottom + 1;
+        });
+      });
+      assert.ok(contained, `Row content stays inside the row at ${width}px`);
+    }
+    await page.setViewportSize({width: 1366, height: 700});
+    await page.goto(base);
+    await page.locator('#category').selectOption('DISPOSICIONES');
+    await page.waitForURL(/category=DISPOSICIONES/);
+    assert.equal(await page.locator('.row').count(), 1, 'Publication type filters the results');
+    await page.goto(base);
+    await page.getByRole('link', {name: 'Últimos 7 días'}).click();
+    assert.notEqual(await page.locator('#date').inputValue(), await page.locator('#to').inputValue(), 'Date preset fills the single period control');
+    await page.goto(base);
+    await page.setViewportSize({width: 1366, height: 768});
+    assert.equal(await page.locator('.range-trigger').count(), 1, 'There is one visible period trigger');
+    assert.equal(await page.locator('.range-native').isVisible(), false, 'Native date inputs are only the no-script fallback');
+    const maxDay = await page.locator('#range-picker').getAttribute('data-max');
+    const shiftDay = (value, offset) => {
+      const day = new Date(`${value}T12:00:00Z`);
+      day.setUTCDate(day.getUTCDate() + offset);
+      return day.toISOString().slice(0, 10);
+    };
+    const rangeStart = shiftDay(maxDay, -6);
+    const rangeEnd = shiftDay(maxDay, -2);
+    await page.locator('#range-trigger').click();
+    assert.equal(await page.locator('.range-month').count(), 2, 'Two months share one desktop calendar');
+    await page.locator(`.range-day[data-day="${rangeStart}"]`).focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.locator('.range-day:focus').getAttribute('data-day'), shiftDay(rangeStart, 1), 'Arrow keys move inside the calendar');
+    await page.locator(`.range-day[data-day="${rangeStart}"]`).click();
+    assert.match(await page.locator('.range-message').innerText(), /fecha de fin/);
+    await page.locator(`.range-day[data-day="${rangeEnd}"]`).click();
+    assert.equal(await page.locator('.range-day.is-edge').count(), 2);
+    assert.equal(await page.locator('.range-day.is-between').count(), 3, 'The full period is highlighted continuously');
+    await page.screenshot({path: `${out}/range-picker-desktop.png`});
+    await page.locator('.range-apply').click();
+    await page.waitForURL(url => url.searchParams.get('date') === rangeStart && url.searchParams.get('to') === rangeEnd);
+    assert.equal(await page.locator('#date').inputValue(), rangeStart);
+    assert.equal(await page.locator('#to').inputValue(), rangeEnd);
+    await page.locator('#range-trigger').click();
+    await page.locator('.range-clear').click();
+    assert.equal(await page.locator('.range-apply').isDisabled(), true, 'Clearing leaves the range uncommitted');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#range-panel').isVisible(), false, 'Escape dismisses without changing the current filter');
+    await page.setViewportSize({width: 390, height: 844});
+    await page.locator('#range-trigger').click();
+    assert.equal(await page.locator('.range-month').count(), 1, 'Mobile shows one month');
+    const panel = await page.locator('#range-panel').boundingBox();
+    assert.ok(panel.x >= 0 && panel.x + panel.width <= 390 && panel.y >= 0 && panel.y + panel.height <= 844, 'Mobile calendar fits the viewport');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Open picker does not overflow mobile viewport');
+    await page.screenshot({path: `${out}/range-picker-mobile.png`});
+    await page.setViewportSize({width: 320, height: 700});
+    const smallPanel = await page.locator('#range-panel').boundingBox();
+    assert.ok(smallPanel.x >= 0 && smallPanel.x + smallPanel.width <= 320 && smallPanel.y >= 0 && smallPanel.y + smallPanel.height <= 700, 'Picker fits a narrow phone');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Open picker does not overflow a narrow phone');
+    await page.keyboard.press('Escape');
+    await page.setViewportSize({width: 1366, height: 700});
+    await page.goto(base);
+    const previousMonth = new Date(`${maxDay}T12:00:00Z`);
+    previousMonth.setUTCDate(0);
+    const previousMonthLastDay = previousMonth.toISOString().slice(0, 10);
+    await page.locator('#range-trigger').click();
+    await page.locator(`.range-day[data-day="${previousMonthLastDay}"]`).click();
+    await page.locator(`.range-day[data-day="${maxDay}"]`).click();
+    assert.equal(await page.locator('.range-day.is-edge').count(), 2, 'A range can cross month boundaries');
+    await page.locator('.range-apply').click();
+    await page.waitForURL(url => url.searchParams.get('date') === previousMonthLastDay && url.searchParams.get('to') === maxDay);
+    await page.goto(base + '/?view=history');
+    await page.screenshot({path: `${out}/history.png`});
+    await page.goto(base + '/?view=failures');
+    await page.screenshot({path: `${out}/failures.png`});
+    await page.goto(base + '/?q=sin-resultados');
+    await page.screenshot({path: `${out}/empty.png`});
+    await page.goto(base + '/?date=2026-09-01&to=2026-09-15');
+    await page.screenshot({path: `${out}/range.png`});
+    assert.deepEqual(errors, [], 'No browser script errors');
+    console.log('Visual and interaction checks passed (synthetic data).');
+  } finally { await browser.close(); }
+})().catch(e => {console.error(e); process.exit(1);});
