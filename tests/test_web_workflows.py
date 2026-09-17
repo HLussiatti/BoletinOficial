@@ -11,16 +11,17 @@ from email.parser import BytesParser
 from datetime import date
 from http.server import ThreadingHTTPServer
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from urllib.parse import urlencode
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from bs4 import BeautifulSoup
+from requests import HTTPError as RequestsHTTPError, Response
 
 from epe_boletin.db import Database
 from epe_boletin.models import Publication
-from epe_boletin.summaries import ConceptualSummary
+from epe_boletin.summaries import ConceptualSummary, SummaryError
 from epe_boletin.web import Query, WebApplication, create_handler, render_page, open_eml
 
 
@@ -204,6 +205,26 @@ class WebWorkflowsTest(unittest.TestCase):
                     for row in self.app.publications(Query(relevance='all'))}
         self.assertEqual('pending', statuses['1'])
         self.assertEqual('ready', statuses['2'])
+
+    def test_automatic_summaries_retry_rate_limit_without_marking_error(self):
+        self.db.save_document(self.ids[1], self.pdf, 'b'*64, self.pdf.stat().st_size,
+                              'https://example.test/2', page_count=2,
+                              extraction_status='complete', extracted_text='Texto sectorial')
+        response = Response()
+        response.status_code = 429
+        temporary = SummaryError('Límite temporal')
+        temporary.__cause__ = RequestsHTTPError('429', response=response)
+        summarizer = Mock()
+        summarizer.summarize.side_effect = [
+            temporary,
+            ConceptualSummary('Resumen', 'Posible incidencia', 'Publicación', True),
+        ]
+        with patch('epe_boletin.web.time.sleep') as sleep:
+            self.app._run_auto_summaries('test-model', summarizer)
+        self.assertEqual([call(30), call(1)], sleep.call_args_list)
+        self.assertEqual(2, summarizer.summarize.call_count)
+        self.assertEqual('ready',
+                         self.app.publications(Query(day='2026-09-11'))[0]['summary_status'])
 
     def test_successful_consult_starts_automatic_summaries(self):
         with patch('epe_boletin.pipeline.run', return_value={'failed': 0}), \

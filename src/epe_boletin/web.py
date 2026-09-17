@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from .db import Database
 from .mail import EmailArtifact, build_email_batches
 from .priority import publication_sort_key
-from .summaries import PROMPT_VERSION, configured_summarizer
+from .summaries import PROMPT_VERSION, configured_summarizer, retryable_summary_error
 from .web_ui import CSS, SCRIPT
 
 
@@ -353,7 +353,9 @@ class WebApplication:
 
     def _run_auto_summaries(self, model: str, summarizer) -> None:
         consecutive_failures = 0
+        retry_delay = 30
         while True:
+            delay = 1
             with self.summary_lock:
                 candidates = self.database.summary_candidates(
                     model, PROMPT_VERSION, limit=1,
@@ -366,18 +368,26 @@ class WebApplication:
                     summary = summarizer.summarize(candidate)
                     self.database.save_summary(candidate, summary, model, PROMPT_VERSION)
                     consecutive_failures = 0
+                    retry_delay = 30
                 except Exception as exc:
-                    self.database.mark_summary_error(
-                        candidate, model, PROMPT_VERSION,
-                        "No se pudo generar el resumen automático. Reintentá manualmente.",
-                    )
-                    consecutive_failures += 1
-                    LOGGER.error("Resumen automático falló para publicación %s: %s",
-                                 candidate.publication_id, exc)
+                    if retryable_summary_error(exc):
+                        delay = retry_delay
+                        retry_delay = min(retry_delay * 2, 300)
+                        LOGGER.warning("Resumen automático pendiente tras falla temporal "
+                                       "para publicación %s: %s", candidate.publication_id, exc)
+                    else:
+                        self.database.mark_summary_error(
+                            candidate, model, PROMPT_VERSION,
+                            "No se pudo generar el resumen automático. Reintentá manualmente.",
+                        )
+                        consecutive_failures += 1
+                        delay = 5
+                        LOGGER.error("Resumen automático falló para publicación %s: %s",
+                                     candidate.publication_id, exc)
             if consecutive_failures >= 3:
                 LOGGER.error("Resúmenes automáticos pausados tras tres fallas consecutivas")
                 return
-            time.sleep(5 if consecutive_failures else 1)
+            time.sleep(delay)
 
     def generate_summary(self, publication_id: int) -> None:
         with self.summary_lock:

@@ -74,8 +74,9 @@ del servicio o, para Gemini, de `gemini_api_key.txt` dentro de `--data-dir`.
 Con la tanda automática activada, al iniciar la web y después de cada consulta
 completa el servicio genera en segundo plano los resúmenes pendientes de las
 publicaciones con **Impacto potencial** y PDF extraído. Procesa una publicación por
-vez; si hay tres fallas consecutivas, detiene la tanda y conserva las demás como
-pendientes. El botón permite reintentar una falla
+vez; ante límites de tasa o cortes temporales espera y reintenta. Si hay tres fallas
+no transitorias consecutivas, detiene la tanda y conserva las demás como pendientes.
+El botón permite reintentar una falla
 individual. El texto de los PDF se envía al proveedor de IA configurado para generar
 estos resúmenes. La tanda automática queda activa por defecto; `EPE_AUTO_SUMMARIES=0`
 la pausa sin deshabilitar el botón manual. El progreso se consulta en

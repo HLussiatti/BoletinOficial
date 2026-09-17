@@ -103,6 +103,19 @@ class SummaryError(RuntimeError):
     pass
 
 
+def retryable_summary_error(error: BaseException) -> bool:
+    """Recognize provider/network failures that should leave a candidate pending."""
+    current: BaseException | None = error
+    while current is not None:
+        if isinstance(current, (requests.Timeout, requests.ConnectionError)):
+            return True
+        if isinstance(current, requests.HTTPError):
+            response = current.response
+            return bool(response is not None and response.status_code in {429, 500, 502, 503, 504})
+        current = current.__cause__
+    return False
+
+
 def _candidate_input(candidate: SummaryCandidate) -> str:
     return json.dumps({
         "identificacion": candidate.title,
