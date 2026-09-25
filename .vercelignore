@@ -2,6 +2,7 @@
 .env/
 .env*
 .git/
+.vercel/
 tmp/
 var/
 data/
@@ -11,6 +12,8 @@ scripts/
 config/
 dist/
 build/
+*.egg-info/
+__pycache__/
 *.md
 *.xlsx
 *.ipynb

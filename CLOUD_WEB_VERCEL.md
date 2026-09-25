@@ -64,17 +64,45 @@ No configurar `GEMINI_API_KEY` en Vercel: la web no genera resúmenes. Esas
 acciones quedarán en el proceso diario separado. Si se cambia un hash o el
 secreto de sesión, las sesiones existentes dejan de funcionar.
 
-## Despliegue de prueba
+## Despliegue de prueba desde Windows
 
 La configuración `vercel.json` reescribe `/` a la función Python. El paquete
 se instala desde `requirements.txt` con el extra `cloud`. `.vercelignore` y
 `excludeFiles` excluyen la copia histórica, los archivos operativos, pruebas,
 PDFs y `.eml` del bundle.
 
-Antes de conectar el repositorio a Vercel, revisar el diff y decidir qué rama
-se publicará: el repositorio GitHub es público y este worktree contiene también
-cambios previos del modo local. La copia depurada de `tmp/` no debe publicarse.
-Hacer primero un despliegue **Preview** privado. Verificar que el acceso sin
+El repositorio GitHub público tiene 32 commits locales aún no publicados. Para
+esta Preview se usa una carpeta de despliegue independiente y no se conecta
+GitHub. Generarla desde la raíz del worktree:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\build_vercel_preview.py --output tmp\vercel_preview_ready
+```
+
+El script sólo copia archivos `.py` del paquete y los cinco archivos de
+entrada/configuración. Rechaza un destino que ya exista. El resultado queda
+en `tmp/`, fuera de Git; nunca incluye la base depurada ni las credenciales.
+Si `npm.cmd` no existe en PowerShell, instalar [Node.js LTS para Windows](https://nodejs.org/en/download)
+y abrir una nueva terminal. Luego instalar la
+[CLI oficial de Vercel](https://vercel.com/docs/cli):
+
+```powershell
+npm.cmd install --global vercel
+Set-Location 'RUTA_DEL_WORKTREE\tmp\vercel_preview_ready'
+vercel.cmd login
+vercel.cmd link
+```
+
+`vercel link` permite crear un proyecto nuevo. Elegir la cuenta propia y usar
+la carpeta actual como raíz. No conectar un repositorio Git para este piloto.
+En el panel del proyecto, cargar las cuatro variables enumeradas arriba sólo
+para el entorno **Preview**. Después, desde esa misma carpeta:
+
+```powershell
+vercel.cmd deploy
+```
+
+Sin `--prod`, Vercel crea una Preview. Verificar que el acceso sin
 sesión sólo muestre el formulario, que ambos usuarios puedan entrar, que los
 filtros y el CSV coincidan con Turso y que el `.eml` se abra como borrador sin
 adjuntos. Comprobar también que las URLs oficiales lleven al BORA.

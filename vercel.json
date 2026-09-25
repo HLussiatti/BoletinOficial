@@ -6,7 +6,7 @@
   ],
   "functions": {
     "api/index.py": {
-      "excludeFiles": "{tests/**,historico/**,tmp/**,var/**,data/**,scripts/**,config/**,dist/**,build/**,.venv/**,**/*.sqlite3,**/*.pdf,**/*.eml,**/*.xlsx,**/*.ipynb}"
+      "excludeFiles": "{tests/**,historico/**,tmp/**,var/**,data/**,scripts/**,config/**,dist/**,build/**,.venv/**,**/*.egg-info/**,**/__pycache__/**,**/*.sqlite3,**/*.pdf,**/*.eml,**/*.xlsx,**/*.ipynb}"
     }
   }
 }
