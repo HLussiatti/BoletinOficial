@@ -67,8 +67,10 @@ secreto de sesión, las sesiones existentes dejan de funcionar.
 
 ## Despliegue de prueba desde Windows
 
-La configuración `vercel.json` reescribe `/` a la función Python. El paquete
-se instala desde `requirements.txt` con el extra `cloud`. `.vercelignore` y
+La configuración `vercel.json` reescribe `/` a la función Python. Vercel
+instala dependencias desde `pyproject.toml`; `libsql` figura allí para Linux,
+mientras el extra `cloud` permite instalarlo también en Windows para pruebas.
+`.vercelignore` y
 `excludeFiles` excluyen la copia histórica, los archivos operativos, pruebas,
 PDFs y `.eml` del bundle.
 
@@ -126,8 +128,10 @@ En un proyecto recién creado, Vercel CLI 60.0.1 asignó el primer despliegue a
 Production aun sin `--prod`; ese despliegue inicial se retiró porque no tenía
 las variables Preview. El primer formulario de Preview rechazó el POST del
 navegador; se sustituyó la comprobación de cabeceras por el token del
-formulario. La Preview actual, estado `Ready`, está en
-`https://epe-boletin-preview-nxgceckk2-ame-bbfb.vercel.app`. Los siguientes
+formulario. Tras un `503` al cargar publicaciones, se añadió la dependencia
+`libsql` al runtime Linux y un registro de errores sin valores secretos. La
+Preview actual, estado `Ready`, está en
+`https://epe-boletin-preview-iufemfs6t-ame-bbfb.vercel.app`. Los siguientes
 `vercel deploy` sin `--prod` crean nuevas Previews.
 
 Vercel Authentication protege esa URL de Preview. Para que los otros usuarios

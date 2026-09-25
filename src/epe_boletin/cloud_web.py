@@ -5,6 +5,8 @@ from __future__ import annotations
 import csv
 import html
 import io
+import logging
+import os
 from dataclasses import dataclass
 from datetime import date
 from http import HTTPStatus
@@ -341,7 +343,15 @@ class CloudWeb:
                                  self._page(filters, auth.csrf_token(ticket), user))
         except RequestError as exc:
             return self._respond(start_response, 400, _h(exc).encode("utf-8"))
-        except Exception:
+        except Exception as exc:
+            detail = str(exc)
+            for key in ("TURSO_AUTH_TOKEN", "EPE_WEB_SESSION_SECRET", "EPE_WEB_USERS",
+                        "TURSO_DATABASE_URL"):
+                value = os.environ.get(key, "")
+                if value:
+                    detail = detail.replace(value, "[redacted]")
+            logging.error("Cloud web request failed (%s): %s", type(exc).__name__,
+                          detail[:300])
             return self._respond(start_response, 503, b"Servicio temporalmente no disponible")
 
     @staticmethod
