@@ -74,6 +74,17 @@ def _csv_cell(value: object) -> str:
     return "'" + result if result.lstrip().startswith(("=", "+", "-", "@")) else result
 
 
+def _same_origin_post(environ: dict) -> bool:
+    host = environ.get("HTTP_HOST", "")
+    if not host:
+        return False
+    origin_header = environ.get("HTTP_ORIGIN", "")
+    if origin_header:
+        origin = urlparse(origin_header)
+        return origin.scheme in ("http", "https") and origin.netloc == host
+    return environ.get("HTTP_SEC_FETCH_SITE", "") == "same-origin"
+
+
 @dataclass(frozen=True)
 class Filters:
     day: str
@@ -291,9 +302,7 @@ class CloudWeb:
             action = query.get("action", [""])[0]
             body: dict[str, list[str]] = {}
             if method == "POST":
-                host = environ.get("HTTP_HOST", "")
-                origin = urlparse(environ.get("HTTP_ORIGIN", ""))
-                if (not host or origin.netloc != host or origin.scheme not in ("http", "https")):
+                if not _same_origin_post(environ):
                     return self._respond(start_response, 403, b"Solicitud rechazada")
                 length = int(environ.get("CONTENT_LENGTH", "0") or "0")
                 if length < 0 or length > 8192:

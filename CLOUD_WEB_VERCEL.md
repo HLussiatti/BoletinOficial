@@ -14,9 +14,11 @@ por fecha, relevancia y texto, exporta la página a CSV y descarga borradores
 construye en memoria y no incluye adjuntos. Los enlaces de fuente apuntan al
 BORA. El sitio no escribe en Turso ni ejecuta la consulta diaria ni Gemini.
 
-El acceso admite los tres usuarios configurados. Las contraseñas se guardan como hashes
-PBKDF2; una cookie firmada expira a las 12 horas. Las acciones POST validan
-origen y token CSRF. Las respuestas privadas llevan `Cache-Control: no-store`.
+El acceso admite los tres usuarios configurados. Las contraseñas se guardan
+como hashes PBKDF2; una cookie firmada expira a las 12 horas. Las acciones
+POST validan el origen o la señal de mismo origen del navegador cuando falta
+esa cabecera. Las acciones privadas validan además un token CSRF. Las
+respuestas privadas llevan `Cache-Control: no-store`.
 La contraseña, el token de Turso y el secreto de sesión no van al repositorio.
 
 ## Comprobación de sólo lectura contra Turso
@@ -122,9 +124,10 @@ vercel.cmd deploy
 
 En un proyecto recién creado, Vercel CLI 60.0.1 asignó el primer despliegue a
 Production aun sin `--prod`; ese despliegue inicial se retiró porque no tenía
-las variables Preview. El segundo despliegue quedó en **Preview**, estado
-`Ready`, en
-`https://epe-boletin-preview-gml7caykm-ame-bbfb.vercel.app`. Los siguientes
+las variables Preview. El primer formulario de Preview rechazó un POST del
+navegador; una prueba remota reprodujo ese rechazo cuando faltaba la cabecera
+`Origin`. La corrección quedó en la Preview actual, estado `Ready`, en
+`https://epe-boletin-preview-jt3r56tfd-ame-bbfb.vercel.app`. Los siguientes
 `vercel deploy` sin `--prod` crean nuevas Previews.
 
 Vercel Authentication protege esa URL de Preview. Para que los otros usuarios
@@ -135,8 +138,8 @@ contraseña de la aplicación. Véase la
 [guía de enlaces compartibles](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/sharable-links).
 
 Verificar que el acceso sin sesión sólo muestre el formulario, que los tres
-usuarios puedan entrar, que los
-filtros y el CSV coincidan con Turso y que el `.eml` se abra como borrador sin
+usuarios puedan entrar, que los filtros y el CSV coincidan con Turso y que el
+`.eml` se abra como borrador sin
 adjuntos. Comprobar también que las URLs oficiales lleven al BORA.
 
 La ejecución diaria, respaldo automatizado y despliegue de producción siguen

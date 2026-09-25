@@ -69,10 +69,12 @@ class CloudWebTest(unittest.TestCase):
         }, "session-secret-for-tests-at-least-32-characters")
         self.app = CloudWeb(self.db, self.auth)
 
-    def request(self, query="", *, method="GET", data=None, cookie="", origin="http://localhost:8000"):
+    def request(self, query="", *, method="GET", data=None, cookie="",
+                origin="http://localhost:8000", fetch_site=""):
         body = urlencode(data or {}, doseq=True).encode() if data is not None else b""
         environ = {"REQUEST_METHOD": method, "QUERY_STRING": query,
                    "HTTP_HOST": "localhost:8000", "HTTP_ORIGIN": origin,
+                   "HTTP_SEC_FETCH_SITE": fetch_site,
                    "HTTP_COOKIE": cookie, "CONTENT_LENGTH": str(len(body)),
                    "wsgi.input": io.BytesIO(body)}
         captured = {}
@@ -125,6 +127,21 @@ class CloudWebTest(unittest.TestCase):
         self.assertEqual(303, int(third_login["status"][:3]))
         third_cookie = third_login["headers"]["Set-Cookie"].split(";", 1)[0]
         self.assertIn(b"Resoluci", self.request(cookie=third_cookie)["body"])
+
+    def test_login_accepts_same_origin_fetch_metadata_without_origin(self):
+        login = self.request("action=login", method="POST", origin="",
+                             fetch_site="same-origin",
+                             data={"user": "ana", "password": "clave-de-prueba-larga"})
+        self.assertEqual(303, int(login["status"][:3]))
+        cross_site = self.request("action=login", method="POST", origin="",
+                                  fetch_site="cross-site",
+                                  data={"user": "ana", "password": "clave-de-prueba-larga"})
+        self.assertEqual(403, int(cross_site["status"][:3]))
+        mismatched_origin = self.request("action=login", method="POST",
+                                         origin="https://example.invalid",
+                                         fetch_site="same-origin",
+                                         data={"user": "ana", "password": "clave-de-prueba-larga"})
+        self.assertEqual(403, int(mismatched_origin["status"][:3]))
 
     def test_draft_is_in_memory_and_rejects_csrf_or_other_day(self):
         ticket = self.ticket()
