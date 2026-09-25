@@ -74,17 +74,6 @@ def _csv_cell(value: object) -> str:
     return "'" + result if result.lstrip().startswith(("=", "+", "-", "@")) else result
 
 
-def _same_origin_post(environ: dict) -> bool:
-    host = environ.get("HTTP_HOST", "")
-    if not host:
-        return False
-    origin_header = environ.get("HTTP_ORIGIN", "")
-    if origin_header:
-        origin = urlparse(origin_header)
-        return origin.scheme in ("http", "https") and origin.netloc == host
-    return environ.get("HTTP_SEC_FETCH_SITE", "") == "same-origin"
-
-
 @dataclass(frozen=True)
 class Filters:
     day: str
@@ -284,14 +273,23 @@ class CloudWeb:
             </main></body></html>'''
         return content.encode("utf-8")
 
-    def _login_page(self, error: str = "") -> bytes:
+    def _login_page(self, csrf: str, error: str = "") -> bytes:
         message = f'<p class="error" role="alert">{_h(error)}</p>' if error else ""
         return (f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
             <title>Acceso · Boletín Oficial EPESF</title><style>{STYLE}</style></head><body><main class="shell"><div class="login">
             <h1>Boletín Oficial EPESF</h1><p>Ingresá para consultar las publicaciones.</p>{message}
-            <form method="post" action="/?action=login"><label>Usuario<input name="user" autocomplete="username" required></label>
+            <form method="post" action="/?action=login"><input type="hidden" name="login_csrf" value="{_h(csrf)}">
+            <label>Usuario<input name="user" autocomplete="username" required></label>
             <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
             <button type="submit">Ingresar</button></form></div></main></body></html>''').encode("utf-8")
+
+    def _login_response(self, start_response: Callable, auth: CloudAuth,
+                        status: int = 200, error: str = ""):
+        nonce = auth.new_login_nonce()
+        cookie = f"epe_login_nonce={nonce}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600"
+        return self._respond(start_response, status,
+                             self._login_page(auth.login_csrf_token(nonce), error),
+                             [("Set-Cookie", cookie)])
 
     def __call__(self, environ: dict, start_response: Callable):
         try:
@@ -302,24 +300,25 @@ class CloudWeb:
             action = query.get("action", [""])[0]
             body: dict[str, list[str]] = {}
             if method == "POST":
-                if not _same_origin_post(environ):
-                    return self._respond(start_response, 403, b"Solicitud rechazada")
                 length = int(environ.get("CONTENT_LENGTH", "0") or "0")
                 if length < 0 or length > 8192:
                     return self._respond(start_response, 413, b"Formulario demasiado grande")
                 raw = environ["wsgi.input"].read(length)
                 body = parse_qs(raw.decode("utf-8"), keep_blank_values=True)
             if action == "login" and method == "POST":
+                if not auth.valid_login_csrf(environ.get("HTTP_COOKIE", ""),
+                                             body.get("login_csrf", [""])[0]):
+                    return self._respond(start_response, 403, b"Solicitud rechazada")
                 name = body.get("user", [""])[0]
                 password = body.get("password", [""])[0]
                 if not auth.verify_password(name, password):
-                    return self._respond(start_response, 401,
-                                         self._login_page("Usuario o contraseña incorrectos"))
+                    return self._login_response(start_response, auth, 401,
+                                                "Usuario o contraseña incorrectos")
                 ticket = auth.new_ticket(name)
                 return self._respond(start_response, 303, b"", [
                     ("Location", "/"), ("Set-Cookie", f"epe_session={ticket}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age={SESSION_SECONDS}")])
             if not user:
-                return self._respond(start_response, 200, self._login_page())
+                return self._login_response(start_response, auth)
             if method == "POST" and not auth.valid_csrf(ticket, body.get("csrf", [""])[0]):
                 return self._respond(start_response, 403, b"Solicitud rechazada")
             if action == "logout" and method == "POST":

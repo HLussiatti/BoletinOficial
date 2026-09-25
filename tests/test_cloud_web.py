@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import csv
 import json
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -87,6 +88,12 @@ class CloudWebTest(unittest.TestCase):
     def ticket(self):
         return self.auth.new_ticket("ana")
 
+    def login_form(self):
+        page = self.request()
+        match = re.search(rb'name="login_csrf" value="([^"]+)"', page["body"])
+        self.assertIsNotNone(match)
+        return page["headers"]["Set-Cookie"].split(";", 1)[0], match.group(1).decode()
+
     def test_access_requires_login_and_tampered_cookie_is_rejected(self):
         anonymous = self.request()
         self.assertEqual(200, int(anonymous["status"][:3]))
@@ -98,11 +105,15 @@ class CloudWebTest(unittest.TestCase):
         self.assertNotIn(b"Resoluci", bad["body"])
 
     def test_login_filter_export_and_logout(self):
-        wrong = self.request("action=login", method="POST",
-                             data={"user": "ana", "password": "incorrecta"})
+        login_cookie, login_csrf = self.login_form()
+        wrong = self.request("action=login", method="POST", cookie=login_cookie,
+                             data={"user": "ana", "password": "incorrecta",
+                                   "login_csrf": login_csrf})
         self.assertEqual(401, int(wrong["status"][:3]))
-        login = self.request("action=login", method="POST",
-                             data={"user": "ana", "password": "clave-de-prueba-larga"})
+        login_cookie, login_csrf = self.login_form()
+        login = self.request("action=login", method="POST", cookie=login_cookie,
+                             data={"user": "ana", "password": "clave-de-prueba-larga",
+                                   "login_csrf": login_csrf})
         self.assertEqual(303, int(login["status"][:3]))
         self.assertIn("HttpOnly", login["headers"]["Set-Cookie"])
         self.assertIn("Secure", login["headers"]["Set-Cookie"])
@@ -122,26 +133,31 @@ class CloudWebTest(unittest.TestCase):
         self.assertEqual(303, int(logout["status"][:3]))
         self.assertIn("Max-Age=0", logout["headers"]["Set-Cookie"])
 
-        third_login = self.request("action=login", method="POST",
-                                   data={"user": "caro", "password": "tercera-clave-larga"})
+        login_cookie, login_csrf = self.login_form()
+        third_login = self.request("action=login", method="POST", cookie=login_cookie,
+                                   data={"user": "caro", "password": "tercera-clave-larga",
+                                         "login_csrf": login_csrf})
         self.assertEqual(303, int(third_login["status"][:3]))
         third_cookie = third_login["headers"]["Set-Cookie"].split(";", 1)[0]
         self.assertIn(b"Resoluci", self.request(cookie=third_cookie)["body"])
 
-    def test_login_accepts_same_origin_fetch_metadata_without_origin(self):
-        login = self.request("action=login", method="POST", origin="",
-                             fetch_site="same-origin",
-                             data={"user": "ana", "password": "clave-de-prueba-larga"})
+    def test_login_requires_cookie_bound_token_without_request_headers(self):
+        login_cookie, login_csrf = self.login_form()
+        login = self.request("action=login", method="POST", origin="", cookie=login_cookie,
+                             data={"user": "ana", "password": "clave-de-prueba-larga",
+                                   "login_csrf": login_csrf})
         self.assertEqual(303, int(login["status"][:3]))
-        cross_site = self.request("action=login", method="POST", origin="",
-                                  fetch_site="cross-site",
-                                  data={"user": "ana", "password": "clave-de-prueba-larga"})
-        self.assertEqual(403, int(cross_site["status"][:3]))
-        mismatched_origin = self.request("action=login", method="POST",
-                                         origin="https://example.invalid",
-                                         fetch_site="same-origin",
-                                         data={"user": "ana", "password": "clave-de-prueba-larga"})
-        self.assertEqual(403, int(mismatched_origin["status"][:3]))
+        missing_token = self.request("action=login", method="POST", cookie=login_cookie,
+                                     data={"user": "ana", "password": "clave-de-prueba-larga"})
+        self.assertEqual(403, int(missing_token["status"][:3]))
+        missing_cookie = self.request("action=login", method="POST", origin="",
+                                      data={"user": "ana", "password": "clave-de-prueba-larga",
+                                            "login_csrf": login_csrf})
+        self.assertEqual(403, int(missing_cookie["status"][:3]))
+        tampered_token = self.request("action=login", method="POST", cookie=login_cookie,
+                                      data={"user": "ana", "password": "clave-de-prueba-larga",
+                                            "login_csrf": login_csrf + "x"})
+        self.assertEqual(403, int(tampered_token["status"][:3]))
 
     def test_draft_is_in_memory_and_rejects_csrf_or_other_day(self):
         ticket = self.ticket()
@@ -151,13 +167,11 @@ class CloudWebTest(unittest.TestCase):
         denied = self.request("action=draft", method="POST", cookie=cookie,
                               data={**body, "csrf": "wrong"})
         self.assertEqual(403, int(denied["status"][:3]))
-        denied_origin = self.request("action=draft", method="POST", cookie=cookie,
-                                     data=body, origin="https://example.invalid")
-        self.assertEqual(403, int(denied_origin["status"][:3]))
         wrong_day = self.request("action=draft", method="POST", cookie=cookie,
                                  data={**body, "date": "2026-09-23"})
         self.assertEqual(400, int(wrong_day["status"][:3]))
-        draft = self.request("action=draft", method="POST", cookie=cookie, data=body)
+        draft = self.request("action=draft", method="POST", cookie=cookie,
+                             origin="", data=body)
         self.assertEqual(200, int(draft["status"][:3]))
         self.assertEqual("message/rfc822", draft["headers"]["Content-Type"])
         self.assertIn("attachment;", draft["headers"]["Content-Disposition"])

@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import time
 from getpass import getpass
@@ -117,6 +118,23 @@ class CloudAuth:
     def valid_csrf(self, ticket: str, submitted: str) -> bool:
         return bool(ticket and submitted and
                     hmac.compare_digest(self.csrf_token(ticket), submitted))
+
+    @staticmethod
+    def new_login_nonce() -> str:
+        return secrets.token_urlsafe(24)
+
+    def login_csrf_token(self, nonce: str) -> str:
+        return _b64(hmac.digest(self.secret, ("login:" + nonce).encode(), "sha256"))
+
+    def valid_login_csrf(self, cookie_header: str, submitted: str) -> bool:
+        try:
+            cookie = SimpleCookie()
+            cookie.load(cookie_header)
+            nonce = cookie["epe_login_nonce"].value if "epe_login_nonce" in cookie else ""
+        except Exception:
+            return False
+        return bool(re.fullmatch(r"[A-Za-z0-9_-]{32}", nonce) and submitted and
+                    hmac.compare_digest(self.login_csrf_token(nonce), submitted))
 
 
 def main() -> None:
