@@ -91,7 +91,7 @@ class TursoDatabaseTest(unittest.TestCase):
             with patch("epe_boletin.turso_setup.TursoDatabase.from_env",
                        return_value=db), patch("sys.stdout", output):
                 self.assertEqual(0, setup_main(["--init"]))
-            self.assertIn('"table_count": 7', output.getvalue())
+            self.assertIn('"table_count": 8', output.getvalue())
             self.assertNotIn("test-token", output.getvalue())
             self.assertNotIn("pilot.turso.io", output.getvalue())
 
@@ -162,7 +162,7 @@ class TursoDatabaseTest(unittest.TestCase):
                 connection.execute("UPDATE cloud_schema_info SET version=1")
             db.migrate()
             with db.connect() as connection:
-                self.assertEqual(2, connection.execute(
+                self.assertEqual(3, connection.execute(
                     "SELECT version FROM cloud_schema_info").fetchone()["version"])
             item = Publication(
                 source_id="legacy-1", publication_date=date(2025, 9, 24),
@@ -181,6 +181,23 @@ class TursoDatabaseTest(unittest.TestCase):
             candidate = db.summary_candidates("model", "prompt")[0]
             self.assertEqual("PDF histórico", candidate.full_text.splitlines()[-1])
             self.assertIn("PDF", candidate.source_limitations)
+
+    def test_version_two_upgrade_adds_job_queue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "upgrade-v2.sqlite3"
+            db = TursoDatabase("libsql://pilot.turso.io", "test-token",
+                               connector=lambda **_: sqlite3.connect(path))
+            db.migrate()
+            with db.connect() as connection:
+                connection.execute("DROP TABLE cloud_jobs")
+                connection.execute("UPDATE cloud_schema_info SET version=2")
+            db.migrate()
+            with db.connect() as connection:
+                self.assertEqual(3, connection.execute(
+                    "SELECT version FROM cloud_schema_info").fetchone()["version"])
+            job_id, created = db.enqueue_job("consult", "2026-09-24", "ana")
+            self.assertTrue(created)
+            self.assertEqual("pending", db.job(job_id)["status"])
 
     @unittest.skipUnless(find_spec("libsql"), "libsql no está instalado")
     def test_installed_libsql_driver_returns_named_rows(self):

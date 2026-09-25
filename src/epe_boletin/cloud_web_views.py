@@ -24,6 +24,9 @@ CLOUD_CSS = CSS + """
 .cloud-issues{list-style:none;margin:0;padding:0}.cloud-issue{padding:var(--s4);border-bottom:1px solid var(--line);background:var(--surface)}
 .cloud-issue p{color:var(--ink-2);margin-top:var(--s2)}
 .cloud-issues-title{padding:var(--s5) 0 var(--s3)}
+.cloud-actions{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+.cloud-job{margin:var(--s3) 0;padding:var(--s3) var(--s4);background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r-sm)}
+.cloud-job.failed{background:var(--surface);border-color:var(--sig-alta)}
 @media(max-width:900px){.cloud-account span{display:none}}
 @media(max-width:700px){.cloud-account{margin-left:0}.cloud-account button{padding-inline:var(--s2)}}
 """
@@ -38,9 +41,10 @@ CLOUD_SCRIPT = (SCRIPT.split(" function emailActions", 1)[0]
                 + "})();")
 
 
-def render(app, filters, csrf: str, user: str) -> bytes:
+def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
     # Import here because cloud_web loads this view only after the request is authenticated.
-    from .cloud_web import PAGE_SIZE, RELEVANCE, _h, _official_url
+    from .cloud_web import PAGE_SIZE, RELEVANCE, _h, _official_pdf_url, _official_url
+    from .cloud_dispatch import configured
 
     today = datetime.now(timezone(timedelta(hours=-3))).date()
     overview = app._overview(filters)
@@ -48,6 +52,22 @@ def render(app, filters, csrf: str, user: str) -> bytes:
     failed = int(overview["failed"])
     last = overview["last"]
     latest = app._latest_date()
+    actions_enabled = configured()
+    job_notice = ""
+    refresh = ""
+    if job_id:
+        job = app._database().job(job_id)
+        if job:
+            state = str(job["status"])
+            label = {"pending": "Solicitud recibida; esperando ejecutor.",
+                     "running": "Trabajo en curso. Esta página se actualizará.",
+                     "complete": "Trabajo terminado. Ya podés revisar el resultado.",
+                     "failed": "No se pudo completar el trabajo. Podés reintentarlo."}[state]
+            error = f'<p>{_h(job["error"])}</p>' if state == "failed" and job["error"] else ""
+            job_notice = (f'<div class="cloud-job{" failed" if state == "failed" else ""}" '
+                          f'role="status"><strong>{_h(label)}</strong>{error}</div>')
+            if state in ("pending", "running"):
+                refresh = '<meta http-equiv="refresh" content="15">'
     calendar_mode = (filters.view == "history" and not filters.day and not filters.text
                      and not filters.category and filters.relevance == "active")
     total, rows = (0, []) if calendar_mode or filters.view == "failures" else app._listing(filters)
@@ -118,6 +138,9 @@ def render(app, filters, csrf: str, user: str) -> bytes:
         label = nice_day(filters.day) + (" – " + nice_day(filters.end_day) if filters.end_day else "")
         chips.append(f'<a class="chip active" href="{_h(filters.url(date="", to="", view="history", page=1))}">'
                      f'{_h(label)} {icon("close")}</a>')
+    if filters.relevance != "all":
+        chips.append(f'<a class="chip active" href="{_h(filters.url(relevance="all", page=1))}">'
+                     f'{_h(RELEVANCE[filters.relevance])} {icon("close")}</a>')
     if filters.category:
         chips.append(f'<a class="chip active" href="{_h(filters.url(category="", page=1))}">{_h(filters.category)} {icon("close")}</a>')
     if filters.text:
@@ -142,12 +165,15 @@ def render(app, filters, csrf: str, user: str) -> bytes:
                   f'aria-label="Incluir {_h(row["title"])} en el correo"'
                   + (">" if selectable else f' disabled title="{reason}">'))
         official = _official_url(row["detail_url"])
-        pdf = _official_url(row["pdf_url"])
+        pdf = ("" if row["pdf_availability"] == "missing" else
+               (_official_url(row["pdf_url"]) or _official_pdf_url(row["detail_url"])))
         links = []
         if official:
             links.append(f'<a href="{_h(official)}" target="_blank" rel="noopener noreferrer">Aviso en BORA {icon("external")}</a>')
         if pdf:
-            links.append(f'<a href="{_h(pdf)}" target="_blank" rel="noopener noreferrer">PDF oficial en BORA {icon("external")}</a>')
+            pdf_label = ("PDF oficial no confirmado" if row["pdf_availability"] != "available"
+                         else "PDF oficial en BORA")
+            links.append(f'<a href="{_h(pdf)}" target="_blank" rel="noopener noreferrer">{pdf_label} {icon("external")}</a>')
         source_links = "".join(links)
         attribution = ("Resumen incorporado tras revisión" if row["summary_model"] == "human-reviewed"
                        else "Resumen generado por IA")
@@ -167,8 +193,15 @@ def render(app, filters, csrf: str, user: str) -> bytes:
                   f'<p>{_h(row["description"])}</p><strong>Motivo de clasificación</strong>'
                   f'{signals(str(row["relevance_reason"]), filters.text)}<div class="links">{source_links}</div>'
                   f'</div></details>')
-        preview = (f'<p class="preview">{_h(summary)}</p>' if summary else
-                   '<span class="context">Sin resumen · revisar el aviso original</span>')
+        if summary:
+            preview = f'<p class="preview">{_h(summary)}</p>'
+        elif row["relevance"] in ("direct_epesf", "potential_sector_impact"):
+            disabled = "" if actions_enabled else ' disabled title="Configuración pendiente"'
+            label = "Reintentar resumen" if row["summary_status"] == "error" else "Generar resumen"
+            preview = (f'<button class="summary-action" type="submit" form="cloud-summary" '
+                       f'name="id" value="{publication_id}"{disabled}>{label}</button>')
+        else:
+            preview = '<span class="context">Sin resumen · revisar el aviso original</span>'
         relevance = str(row["relevance"])
         badge = "Informativa · descartada" if relevance == "not_relevant" else RELEVANCE.get(relevance, relevance)
         type_hint = ("" if category_repeats_title(str(row["category"]), str(row["title"])) else
@@ -192,7 +225,13 @@ def render(app, filters, csrf: str, user: str) -> bytes:
                 title, detail = "Esta fecha todavía no se consultó", "La carga diaria aún no registró esta edición."
             else:
                 title, detail = "No hay publicaciones para esta vista", "Elegí otro día o cambiá los filtros."
-            empty = f'<div class="cloud-empty"><h2>{_h(title)}</h2><p>{_h(detail)}</p></div>'
+            consult = ""
+            if filters.day and not filters.end_day and not filters.text and not filters.category and (not coverage or coverage["status"] == "failed"):
+                disabled = "" if actions_enabled and date.fromisoformat(filters.day) <= today else ' disabled title="Consulta no disponible"'
+                label = "Reintentar consulta" if coverage else "Consultar ahora"
+                consult = (f'<button type="submit" form="cloud-consult" name="date" '
+                           f'value="{_h(filters.day)}"{disabled}>{label}</button>')
+            empty = f'<div class="cloud-empty"><h2>{_h(title)}</h2><p>{_h(detail)}</p>{consult}</div>'
         draft_note = ("Seleccioná publicaciones con resumen de un solo día para preparar el correo."
                       if not ready_count else "El borrador se descarga sin adjuntos; verificá las fuentes en BORA.")
         result = f'''<section id="results" aria-label="Publicaciones"><div class="results-toolbar"><span class="counter" aria-live="polite">{len(rows)} de {total} {'publicación' if total == 1 else 'publicaciones'}</span><div class="results-actions"><div class="density" role="group" aria-label="Densidad de la lista"><button type="button" data-density="comfortable" aria-pressed="true">Cómoda</button><button type="button" data-density="compact" aria-pressed="false">Compacta</button></div><a id="export-view" class="export-view" href="{_h(export_url)}" title="Exportar CSV de esta página" aria-label="Exportar CSV de esta página">{icon('document')}Exportar CSV</a></div></div><form id="selection-form" class="selection-form" action="/?action=draft" method="post"><input type="hidden" name="date" value="{_h(filters.day)}"><input type="hidden" name="csrf" value="{_h(csrf)}"><div class="column-head"><div class="pick"><input id="select-all" type="checkbox" aria-label="Seleccionar todas las publicaciones disponibles en esta página"{' disabled' if not ready_count else ''}></div><div class="column-cell"><span class="column-label">FECHA</span></div><div class="column-cell"><span class="column-label">PUBLICACIÓN</span></div><div class="column-cell"><span class="column-label">ANÁLISIS</span></div><div class="column-cell"><span class="column-label">DOCUMENTOS</span></div></div><ul class="publication-list">{''.join(rendered_rows)}</ul>{empty}<div id="selection-bar" class="selection-bar" hidden><strong id="selection-count" aria-live="polite">0 seleccionadas</strong><button class="primary" type="submit" data-email disabled>Generar correo</button><button id="export-selected" type="button">Exportar CSV</button><button type="button" data-select="none">Limpiar</button></div></form><p class="cloud-source-note">{draft_note}</p></section>'''
@@ -209,7 +248,7 @@ def render(app, filters, csrf: str, user: str) -> bytes:
                 "SELECT publication_date,status,error FROM coverage WHERE source='BORA' "
                 "AND status='failed' ORDER BY publication_date DESC LIMIT 100").fetchall()
             publication_issues = connection.execute("""
-                SELECT publication_date,title,detail_url,document_status,
+                SELECT id,publication_date,title,detail_url,relevance,document_status,
                        summary_status,delivery_status FROM publications
                 WHERE source='BORA' AND (document_status='error'
                     OR summary_status='error' OR delivery_status IN ('error','uncertain'))
@@ -217,7 +256,10 @@ def render(app, filters, csrf: str, user: str) -> bytes:
             """).fetchall()
         issue_items = "".join(
             f'<li class="cloud-issue"><strong>Cobertura · {_h(item["publication_date"])}</strong>'
-            f'<p>{_h(item["error"] or "La consulta no se completó")}</p></li>' for item in coverage_issues)
+            f'<p>{_h(item["error"] or "La consulta no se completó")}</p>'
+            f'<button type="submit" form="cloud-consult" name="date" value="{_h(item["publication_date"])}"'
+            f'{"" if actions_enabled else " disabled"}>Reintentar consulta</button></li>'
+            for item in coverage_issues)
         for item in publication_issues:
             states = []
             if item["document_status"] == "error":
@@ -229,12 +271,18 @@ def render(app, filters, csrf: str, user: str) -> bytes:
             official = _official_url(item["detail_url"])
             link = (f' <a href="{_h(official)}" target="_blank" rel="noopener noreferrer">Abrir aviso</a>'
                     if official else "")
+            retry = (f'<button type="submit" form="cloud-summary" name="id" value="{item["id"]}"'
+                     f'{"" if actions_enabled else " disabled"}>Reintentar resumen</button>'
+                     if item["summary_status"] == "error" and item["relevance"] in
+                     ("direct_epesf", "potential_sector_impact") else "")
             issue_items += (f'<li class="cloud-issue"><strong>Publicación · {_h(item["title"])}</strong>'
-                            f'<p>{_h(item["publication_date"])} · Revisar: {_h(", ".join(states))}.{link}</p></li>')
+                            f'<p>{_h(item["publication_date"])} · Revisar: {_h(", ".join(states))}.{link}</p>{retry}</li>')
         issues_html = (f'<ul class="cloud-issues">{issue_items}</ul>' if issue_items else
                        '<div class="cloud-empty"><h2>No hay fallas registradas</h2></div>')
         result = f'<section aria-label="Fallas"><h2 class="cloud-issues-title">Requiere atención</h2>{issues_html}</section>'
 
     shortcuts = '<span><kbd>/</kbd> Buscar</span><span><kbd>←</kbd><kbd>→</kbd> Día</span><span><kbd>j</kbd><kbd>k</kbd> Recorrer</span><span><kbd>x</kbd> Seleccionar</span><span><kbd>Enter</kbd> Detalle</span><span><kbd>Esc</kbd> Limpiar</span><span><kbd>?</kbd> Ayuda</span>'
-    page = f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Boletín Oficial EPESF</title><style>{CLOUD_CSS}</style><script src="/?action=ui" defer></script></head><body><a class="skip" href="#filters">Ir a filtros</a><main class="shell"><header class="topbar"><h1 title="Seguimiento normativo de la Primera Sección del BORA">Boletín Oficial EPESF</h1><nav class="view-nav" aria-label="Vistas">{nav}</nav>{status}<a id="help-toggle" class="help" href="#keyboard-help" aria-label="Ver atajos de teclado">?</a><div class="cloud-account"><span>{_h(user)}</span><form action="/?action=logout" method="post"><input type="hidden" name="csrf" value="{_h(csrf)}"><button type="submit">Salir</button></form></div></header><section class="metrics" aria-label="Estado general">{''.join(metrics)}</section>{filters_html}{result}<details id="keyboard-help" class="keyboard-help"><summary>{icon('right')}Atajos de teclado</summary><p class="shortcut-line">{shortcuts}</p></details><footer class="foot">Datos en Turso · Fuentes oficiales en BORA · El correo se prepara para revisión y no se envía automáticamente.</footer></main></body></html>'''
+    action_forms = (f'<form id="cloud-consult" action="/?action=consult" method="post"><input type="hidden" name="csrf" value="{_h(csrf)}"></form>'
+                    f'<form id="cloud-summary" action="/?action=summary" method="post"><input type="hidden" name="csrf" value="{_h(csrf)}"></form>')
+    page = f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{refresh}<title>Boletín Oficial EPESF</title><style>{CLOUD_CSS}</style><script src="/?action=ui" defer></script></head><body><a class="skip" href="#filters">Ir a filtros</a><main class="shell"><header class="topbar"><h1 title="Seguimiento normativo de la Primera Sección del BORA">Boletín Oficial EPESF</h1><nav class="view-nav" aria-label="Vistas">{nav}</nav>{status}<a id="help-toggle" class="help" href="#keyboard-help" aria-label="Ver atajos de teclado">?</a><div class="cloud-account"><span>{_h(user)}</span><form action="/?action=logout" method="post"><input type="hidden" name="csrf" value="{_h(csrf)}"><button type="submit">Salir</button></form></div></header><section class="metrics" aria-label="Estado general">{''.join(metrics)}</section>{job_notice}{filters_html}{result}{action_forms}<details id="keyboard-help" class="keyboard-help"><summary>{icon('right')}Atajos de teclado</summary><p class="shortcut-line">{shortcuts}</p></details><footer class="foot">Datos en Turso · Fuentes oficiales en BORA · El correo se prepara para revisión y no se envía automáticamente.</footer></main></body></html>'''
     return page.encode("utf-8")

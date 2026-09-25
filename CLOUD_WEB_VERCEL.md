@@ -185,9 +185,10 @@ del `.eml` con datos de prueba. Tras ajustar la fecha de Buenos Aires y añadir
 fallas de publicaciones se creó la Preview final de esta revisión:
 `https://epe-boletin-preview-minkza09h-ame-bbfb.vercel.app` (deployment
 `dpl_FSDRh7CBcSthDoFtWFes1qGix24i`, estado `Ready`). La petición anónima
-respondió HTTP 200 con formulario de acceso. Falta la revisión visual y
-funcional del usuario en este último enlace. Conservar la primera Preview
-funcional y la confirmada durante esa revisión.
+respondió HTTP 200 con formulario de acceso. El usuario confirmó que se ve
+igual a la web local y señaló dos funciones faltantes: **Consultar ahora** y
+**Generar resumen**. Conservar la primera Preview funcional y la confirmada
+durante la habilitación de estas acciones.
 
 El worktree contiene cambios locales preexistentes en documentos, scripts y
 `tests/test_web_workflows.py`; no descartarlos ni sobrescribirlos. El bundle
@@ -195,5 +196,61 @@ de Vercel está en `tmp/vercel_preview_ready` y Node portable en
 `tmp/node-portable/node-v24.21.0-win-x64`. No se necesita mantener abierta
 la sesión actual de PowerShell para que la Preview siga funcionando.
 
+El 25/09/2026 se desplegó una Preview de la interfaz con ambas acciones y
+estado de solicitudes:
+`https://epe-boletin-preview-f8oy6ocmw-ame-bbfb.vercel.app`
+(deployment `dpl_8koY1g6GcwF73KPFFtqQZgp1NDUW`, estado `Ready`). La
+petición anónima respondió HTTP 200 con el formulario. Los botones quedan
+deshabilitados mientras falten las variables de GitHub en Vercel; no se han
+configurado todavía y el workflow aún no está en la rama principal.
+
 Referencias: [runtime Python de Vercel](https://vercel.com/docs/functions/runtimes/python),
 [configuración `vercel.json`](https://vercel.com/docs/project-configuration/vercel-json).
+
+## Acciones manuales: consultar y resumir
+
+La interfaz nueva registra cada solicitud en `cloud_jobs` (esquema Turso 3) y
+envía un `workflow_dispatch` a `.github/workflows/cloud-worker.yml`. El worker
+consulta un solo día del BORA o genera un solo resumen con Gemini. La página
+actualiza el estado cada 15 segundos. Dos clics sobre el mismo objetivo mientras
+está pendiente comparten la solicitud; una solicitud sin ejecutar puede
+reintentarse luego de 30 minutos. El primer POST válido migra Turso de la
+versión 2 a la 3. Conviene correr antes el comando de migración de forma
+explícita, con las variables Turso configuradas en PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m epe_boletin.turso_setup --init
+```
+
+El workflow sólo se puede iniciar por API cuando el archivo ya está en la
+rama principal del repositorio. En este worktree la rama remota principal es
+`main`; los cambios locales aún no se publicaron allí. Preparar y revisar la
+publicación en GitHub antes de activar los botones en Vercel.
+
+Configurar **GitHub → Settings → Secrets and variables → Actions** con estos
+secretos del repositorio, sin copiar sus valores al código ni a un chat:
+
+- `TURSO_DATABASE_URL`: la misma URL que usa la Preview.
+- `TURSO_AUTH_TOKEN`: token de Turso con permisos de lectura y escritura.
+- `GEMINI_API_KEY`: clave de un proyecto de Gemini API en **Free Tier**.
+
+Crear un **fine-grained personal access token** de GitHub limitado a este
+repositorio con permiso **Actions: Read and write**. Guardarlo en el entorno
+**Preview** de Vercel como `EPE_GITHUB_ACTIONS_TOKEN` (tipo Secret). Agregar
+también `EPE_GITHUB_REPOSITORY=HLussiatti/BoletinOficial` (tipo Config) y,
+si la rama principal cambia, `EPE_GITHUB_REF` con el nombre real. Desplegar
+una Preview nueva después de cargar las variables; las variables no se
+incorporan retroactivamente a despliegues anteriores.
+
+Verificación: elegir una fecha sin cobertura y pulsar **Consultar ahora**;
+la solicitud debe pasar de pendiente a en curso y completada, y mostrar la
+cobertura/publicaciones. Elegir una publicación relevante sin resumen y
+pulsar **Generar resumen**; al completar, debe aparecer el texto y habilitarse
+la selección para el correo. Si falla, revisar la pestaña Actions en GitHub;
+la web muestra el estado y permite un nuevo intento. No se ejecutan tareas
+periódicas en este cambio.
+
+GitHub ofrece ejecutores estándar gratuitos para repositorios públicos.
+Gemini 3.5 Flash-Lite tiene Free Tier, sujeto a sus límites de uso. Para
+mantener costo cero, usar una clave de un proyecto sin facturación activada;
+al agotar la cuota gratuita, la generación fallará y podrá reintentarse.

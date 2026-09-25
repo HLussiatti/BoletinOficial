@@ -7,9 +7,10 @@ reuses its SQL methods where the remote schema has the same shape.
 from __future__ import annotations
 
 import os
+import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from .db import Database
@@ -18,7 +19,7 @@ from .summaries import SummaryCandidate, source_digest
 from .turso_preflight import validate_turso_url
 
 
-CLOUD_SCHEMA_VERSION = 2
+CLOUD_SCHEMA_VERSION = 3
 
 _SCHEMA = (
     """CREATE TABLE IF NOT EXISTS cloud_schema_info (
@@ -90,10 +91,18 @@ _SCHEMA = (
         UNIQUE(publication_id, model, prompt_version, source_sha256)
     )""",
     "CREATE INDEX IF NOT EXISTS ix_cloud_summaries_publication ON summaries(publication_id,created_at)",
+    """CREATE TABLE IF NOT EXISTS cloud_jobs (
+        id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('consult','summary')),
+        target TEXT NOT NULL, requested_by TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending','running','complete','failed')),
+        created_at TEXT NOT NULL, started_at TEXT, finished_at TEXT, error TEXT
+    )""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_cloud_jobs_active ON cloud_jobs(kind,target) WHERE status IN ('pending','running')",
+    "CREATE INDEX IF NOT EXISTS ix_cloud_jobs_created ON cloud_jobs(created_at)",
 )
 
 _TABLES = frozenset({"cloud_schema_info", "runs", "coverage", "publications",
-                     "notice_contents", "legacy_pdf_texts", "summaries"})
+                     "notice_contents", "legacy_pdf_texts", "summaries", "cloud_jobs"})
 
 
 class CloudSchemaError(RuntimeError):
@@ -191,7 +200,7 @@ class TursoDatabase(Database):
             if "cloud_schema_info" in existing:
                 row = connection.execute(
                     "SELECT version,kind FROM cloud_schema_info").fetchone()
-                if row and (row["version"] not in (1, CLOUD_SCHEMA_VERSION)
+                if row and (row["version"] not in (1, 2, CLOUD_SCHEMA_VERSION)
                             or row["kind"] != "epe-html-pilot"):
                     raise CloudSchemaError("Versión de esquema Turso no soportada")
             for statement in _SCHEMA:
@@ -202,9 +211,68 @@ class TursoDatabase(Database):
                 connection.execute(
                     "INSERT INTO cloud_schema_info(version,kind) VALUES (?,?)",
                     (CLOUD_SCHEMA_VERSION, "epe-html-pilot"))
-            elif row["version"] == 1:
+            elif row["version"] in (1, 2):
                 connection.execute("UPDATE cloud_schema_info SET version=?",
                                    (CLOUD_SCHEMA_VERSION,))
+
+    def enqueue_job(self, kind: str, target: str, user: str) -> tuple[str, bool]:
+        if kind not in ("consult", "summary") or not target or not user:
+            raise ValueError("Solicitud inválida")
+        job_id = uuid.uuid4().hex
+        now = datetime.now(timezone.utc).isoformat()
+        stale = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+        with self.connect() as connection:
+            connection.execute("""
+                UPDATE cloud_jobs SET status='failed',finished_at=?,
+                  error='La ejecución no comenzó o excedió el tiempo esperado. Reintentá.'
+                WHERE kind=? AND target=? AND status IN ('pending','running')
+                  AND COALESCE(started_at,created_at) < ?
+            """, (now, kind, target, stale))
+            result = connection.execute("""
+                INSERT OR IGNORE INTO cloud_jobs(id,kind,target,requested_by,status,created_at)
+                VALUES(?,?,?,?,'pending',?)
+            """, (job_id, kind, target, user, now))
+            if result.rowcount:
+                return job_id, True
+            current = connection.execute("""
+                SELECT id FROM cloud_jobs WHERE kind=? AND target=?
+                  AND status IN ('pending','running') ORDER BY created_at DESC LIMIT 1
+            """, (kind, target)).fetchone()
+            if current is None:
+                raise RuntimeError("No se pudo registrar la solicitud")
+            return str(current["id"]), False
+
+    def job(self, job_id: str) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT * FROM cloud_jobs WHERE id=?", (job_id,)).fetchone()
+        if (row and row["status"] in ("pending", "running")
+                and datetime.fromisoformat(row["started_at"] or row["created_at"])
+                    < datetime.now(timezone.utc) - timedelta(minutes=30)):
+            self.finish_job(job_id, "failed",
+                            "La ejecución no comenzó o excedió el tiempo esperado. Reintentá.")
+            with self.connect() as connection:
+                row = connection.execute("SELECT * FROM cloud_jobs WHERE id=?", (job_id,)).fetchone()
+        return row
+
+    def claim_job(self, job_id: str) -> dict[str, Any] | None:
+        now = datetime.now(timezone.utc).isoformat()
+        with self.connect() as connection:
+            claimed = connection.execute("""
+                UPDATE cloud_jobs SET status='running',started_at=?
+                WHERE id=? AND status='pending'
+            """, (now, job_id))
+            if not claimed.rowcount:
+                return None
+            return connection.execute("SELECT * FROM cloud_jobs WHERE id=?", (job_id,)).fetchone()
+
+    def finish_job(self, job_id: str, status: str, error: str = "") -> None:
+        if status not in ("complete", "failed"):
+            raise ValueError("Estado inválido")
+        with self.connect() as connection:
+            connection.execute("""
+                UPDATE cloud_jobs SET status=?,finished_at=?,error=?
+                WHERE id=? AND status IN ('pending','running')
+            """, (status, datetime.now(timezone.utc).isoformat(), error[:500], job_id))
 
     def upsert_publications(
         self, items: tuple[tuple[Publication, bool], ...]
@@ -217,7 +285,8 @@ class TursoDatabase(Database):
                            include_completed: bool = False,
                            publication_date: date | None = None,
                            relevance: str | None = None,
-                           pending_only: bool = False) -> list[SummaryCandidate]:
+                           pending_only: bool = False,
+                           publication_id: int | None = None) -> list[SummaryCandidate]:
         if relevance and relevance not in ("direct_epesf", "potential_sector_impact"):
             raise ValueError("Clasificación de resumen inválida")
         filters = ["p.relevance IN ('direct_epesf','potential_sector_impact')"]
@@ -225,6 +294,9 @@ class TursoDatabase(Database):
         if publication_date:
             filters.append("p.publication_date=?")
             parameters.append(publication_date.isoformat())
+        if publication_id is not None:
+            filters.append("p.id=?")
+            parameters.append(str(publication_id))
         if relevance:
             filters.append("p.relevance=?")
             parameters.append(relevance)

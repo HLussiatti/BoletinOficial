@@ -7,8 +7,9 @@ import html
 import io
 import logging
 import os
+import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
 from typing import Callable
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -59,6 +60,17 @@ def _official_url(value: object) -> str:
     except ValueError:
         return ""
     return url if valid else ""
+
+
+def _official_pdf_url(detail_url: object) -> str:
+    official = _official_url(detail_url)
+    if not official:
+        return ""
+    match = re.fullmatch(r"/detalleAviso/primera/(\d+)/(\d{8})/?",
+                         urlparse(official).path)
+    if not match:
+        return ""
+    return f"https://www.boletinoficial.gob.ar/pdf/aviso/primera/{match[1]}/{match[2]}"
 
 
 def _csv_cell(value: object) -> str:
@@ -300,9 +312,45 @@ class CloudWeb:
                              row["effective_date"] or "", _official_url(row["detail_url"]))))
         return output.getvalue().encode("utf-8-sig")
 
-    def _page(self, filters: Filters, csrf: str, user: str) -> bytes:
+    def _page(self, filters: Filters, csrf: str, user: str, job_id: str = "") -> bytes:
         from .cloud_web_views import render
-        return render(self, filters, csrf, user)
+        return render(self, filters, csrf, user, job_id)
+
+    def _queue(self, action: str, body: dict[str, list[str]], user: str) -> str:
+        from .cloud_dispatch import configured, dispatch
+        if not configured():
+            raise RequestError("La ejecución todavía no está configurada")
+        if action == "consult":
+            target = body.get("date", [""])[0]
+            try:
+                day = date.fromisoformat(target)
+                if day.isoformat() != target or day > datetime.now(
+                        timezone(timedelta(hours=-3))).date():
+                    raise ValueError
+            except ValueError as exc:
+                raise RequestError("Elegí una fecha válida para consultar") from exc
+        else:
+            target = body.get("id", [""])[0]
+            if not target.isdigit() or not 0 < int(target) < 2**63:
+                raise RequestError("Publicación inválida")
+            with self._database().connect() as connection:
+                row = connection.execute("""
+                    SELECT p.id FROM publications p WHERE p.id=? AND p.source='BORA'
+                      AND p.relevance IN ('direct_epesf','potential_sector_impact')
+                      AND NOT EXISTS (SELECT 1 FROM summaries s
+                          WHERE s.publication_id=p.id AND s.status='complete')
+                """, (int(target),)).fetchone()
+            if row is None:
+                raise RequestError("Esta publicación no tiene un resumen pendiente")
+        db = self._database()
+        db.migrate()
+        job_id, created = db.enqueue_job(action, target, user)
+        if created:
+            try:
+                dispatch(job_id)
+            except Exception:
+                db.finish_job(job_id, "failed", "No se pudo iniciar el ejecutor. Reintentá.")
+        return job_id
 
     def _login_page(self, csrf: str, error: str = "") -> bytes:
         message = f'<p class="error" role="alert">{_h(error)}</p>' if error else ""
@@ -360,6 +408,16 @@ class CloudWeb:
                 return self._respond(start_response, 200, content, [
                     ("Content-Type", "message/rfc822"),
                     ("Content-Disposition", f'attachment; filename="{filename}"')])
+            if action in ("consult", "summary") and method == "POST":
+                job_id = self._queue(action, body, user)
+                day = body.get("date", [""])[0]
+                if action == "summary":
+                    with self._database().connect() as connection:
+                        row = connection.execute("SELECT publication_date FROM publications WHERE id=?",
+                                                 (int(body["id"][0]),)).fetchone()
+                    day = str(row["publication_date"]) if row else ""
+                location = "/?" + urlencode({"date": day, "job": job_id})
+                return self._respond(start_response, 303, b"", [("Location", location)])
             if action == "ui" and method == "GET":
                 from .cloud_web_views import CLOUD_SCRIPT
                 return self._respond(start_response, 200, CLOUD_SCRIPT.encode("utf-8"), [
@@ -373,14 +431,18 @@ class CloudWeb:
                         ("Content-Disposition", 'attachment; filename="publicaciones.csv"')])
                 return self._respond(start_response, 404, b"No encontrado")
             filters = Filters.from_query(query, self._latest_date())
+            job_id = query.get("job", [""])[0]
+            if job_id and not re.fullmatch(r"[0-9a-f]{32}", job_id):
+                raise RequestError("Solicitud inválida")
             return self._respond(start_response, 200,
-                                 self._page(filters, auth.csrf_token(ticket), user))
+                                 self._page(filters, auth.csrf_token(ticket), user,
+                                            job_id))
         except RequestError as exc:
             return self._respond(start_response, 400, _h(exc).encode("utf-8"))
         except Exception as exc:
             detail = str(exc)
             for key in ("TURSO_AUTH_TOKEN", "EPE_WEB_SESSION_SECRET", "EPE_WEB_USERS",
-                        "TURSO_DATABASE_URL"):
+                        "TURSO_DATABASE_URL", "EPE_GITHUB_ACTIONS_TOKEN"):
                 value = os.environ.get(key, "")
                 if value:
                     detail = detail.replace(value, "[redacted]")

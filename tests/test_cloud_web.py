@@ -7,16 +7,18 @@ import re
 import sqlite3
 import tempfile
 import unittest
+import os
 from contextlib import redirect_stdout
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlencode
+from bs4 import BeautifulSoup
 
 from epe_boletin.cloud_auth import CloudAuth, main as auth_main, password_hash
 from epe_boletin.cloud_db import TursoDatabase
-from epe_boletin.cloud_web import CloudWeb
+from epe_boletin.cloud_web import CloudWeb, _official_pdf_url
 
 
 class CloudAuthCliTest(unittest.TestCase):
@@ -123,6 +125,7 @@ class CloudWebTest(unittest.TestCase):
         self.assertIn(b"Resoluci", listing["body"])
         self.assertIn(b"Resumen sint", listing["body"])
         self.assertIn(b"boletinoficial.gob.ar", listing["body"])
+        self.assertIn(b"/pdf/aviso/primera/123/20260924", listing["body"])
         no_matches = self.request("date=2026-09-24&q=ausente", cookie=ticket)
         self.assertIn(b"0 publicaciones", no_matches["body"])
         export = self.request("date=2026-09-24&action=export", cookie=ticket)
@@ -182,6 +185,7 @@ class CloudWebTest(unittest.TestCase):
         self.assertEqual([], list(Path(self.temp.name).glob("*.eml")))
 
     def test_csv_escapes_spreadsheet_formulas_and_session_expires(self):
+        self.assertEqual("", _official_pdf_url("https://example.org/detalleAviso/primera/123/20260924"))
         ticket = self.auth.new_ticket("ana", now=100)
         self.assertEqual("ana", self.auth.ticket_user(ticket, now=101))
         self.assertIsNone(self.auth.ticket_user(ticket, now=100 + 12 * 60 * 60))
@@ -236,6 +240,77 @@ class CloudWebTest(unittest.TestCase):
         self.assertEqual("text/javascript; charset=utf-8", script["headers"]["Content-Type"])
         self.assertIn(b"range-picker", script["body"])
         self.assertNotIn(b"/prepare-email", script["body"])
+
+    def test_manual_consult_dispatches_once_and_shows_status(self):
+        ticket = self.ticket()
+        cookie = "epe_session=" + ticket
+        csrf = self.auth.csrf_token(ticket)
+        settings = {"EPE_GITHUB_ACTIONS_TOKEN": "test-token",
+                    "EPE_GITHUB_REPOSITORY": "owner/repo"}
+        with patch.dict(os.environ, settings), patch("epe_boletin.cloud_dispatch.dispatch") as dispatch:
+            page = self.request("date=2026-09-23", cookie=cookie)
+            self.assertIn(b"Consultar ahora", page["body"])
+            document = BeautifulSoup(page["body"], "html.parser")
+            button = document.find("button", string="Consultar ahora")
+            self.assertEqual("cloud-consult", button.get("form"))
+            self.assertEqual("cloud-consult", document.find("form", id="cloud-consult")["id"])
+            denied = self.request("action=consult", method="POST", cookie=cookie,
+                                  data={"date": "2026-09-23", "csrf": "invalid"})
+            self.assertEqual(403, int(denied["status"][:3]))
+            request = self.request("action=consult", method="POST", cookie=cookie,
+                                   data={"date": "2026-09-23", "csrf": csrf})
+            self.assertEqual(303, int(request["status"][:3]))
+            dispatch.assert_called_once()
+            self.assertIn("job=", request["headers"]["Location"])
+            repeated = self.request("action=consult", method="POST", cookie=cookie,
+                                    data={"date": "2026-09-23", "csrf": csrf})
+            self.assertEqual(request["headers"]["Location"], repeated["headers"]["Location"])
+            dispatch.assert_called_once()
+            status = self.request(request["headers"]["Location"].split("?", 1)[1],
+                                  cookie=cookie)
+            self.assertIn(b"Solicitud recibida", status["body"])
+            self.assertIn(b'http-equiv="refresh"', status["body"])
+
+    def test_summary_dispatch_and_validation(self):
+        ticket = self.ticket()
+        cookie = "epe_session=" + ticket
+        csrf = self.auth.csrf_token(ticket)
+        with self.db.connect() as connection:
+            connection.execute("DELETE FROM summaries WHERE publication_id=?", (self.publication_id,))
+        with patch.dict(os.environ, {"EPE_GITHUB_ACTIONS_TOKEN": "test-token",
+                                  "EPE_GITHUB_REPOSITORY": "owner/repo"}), \
+             patch("epe_boletin.cloud_dispatch.dispatch") as dispatch:
+            page = self.request(cookie=cookie)
+            self.assertIn(b"Generar resumen", page["body"])
+            document = BeautifulSoup(page["body"], "html.parser")
+            button = document.find("button", string="Generar resumen")
+            self.assertEqual("cloud-summary", button.get("form"))
+            self.assertEqual("cloud-summary", document.find("form", id="cloud-summary")["id"])
+            sent = self.request("action=summary", method="POST", cookie=cookie,
+                                data={"id": str(self.publication_id), "csrf": csrf})
+            self.assertEqual(303, int(sent["status"][:3]))
+            dispatch.assert_called_once()
+            bad = self.request("action=summary", method="POST", cookie=cookie,
+                               data={"id": "999999", "csrf": csrf})
+            self.assertEqual(400, int(bad["status"][:3]))
+
+    def test_dispatch_failure_is_visible_and_retryable(self):
+        ticket = self.ticket()
+        cookie = "epe_session=" + ticket
+        with patch.dict(os.environ, {"EPE_GITHUB_ACTIONS_TOKEN": "test-token",
+                                  "EPE_GITHUB_REPOSITORY": "owner/repo"}), \
+             patch("epe_boletin.cloud_dispatch.dispatch", side_effect=RuntimeError("unavailable")):
+            sent = self.request("action=consult", method="POST", cookie=cookie,
+                                data={"date": "2026-09-23",
+                                      "csrf": self.auth.csrf_token(ticket)})
+            self.assertEqual(303, int(sent["status"][:3]))
+            status = self.request(sent["headers"]["Location"].split("?", 1)[1], cookie=cookie)
+            self.assertIn(b"No se pudo completar", status["body"])
+            self.assertNotIn(b"unavailable", status["body"])
+            again = self.request("action=consult", method="POST", cookie=cookie,
+                                 data={"date": "2026-09-23",
+                                       "csrf": self.auth.csrf_token(ticket)})
+            self.assertNotEqual(sent["headers"]["Location"], again["headers"]["Location"])
 
 
 if __name__ == "__main__":
