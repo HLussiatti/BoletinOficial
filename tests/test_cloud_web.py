@@ -2,17 +2,37 @@ from __future__ import annotations
 
 import io
 import csv
+import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import urlencode
 
-from epe_boletin.cloud_auth import CloudAuth, password_hash
+from epe_boletin.cloud_auth import CloudAuth, main as auth_main, password_hash
 from epe_boletin.cloud_db import TursoDatabase
 from epe_boletin.cloud_web import CloudWeb
+
+
+class CloudAuthCliTest(unittest.TestCase):
+    def test_generates_one_json_for_three_users(self):
+        output = io.StringIO()
+        with patch("sys.argv", ["cloud_auth", "--user", "ana", "--user", "bea",
+                                "--user", "caro"]), \
+             patch("epe_boletin.cloud_auth.getpass", side_effect=[
+                 "clave-ana", "clave-ana", "clave-bea", "clave-bea",
+                 "clave-caro", "clave-caro"]), redirect_stdout(output):
+            auth_main()
+        users = json.loads(output.getvalue())
+        self.assertEqual({"ana", "bea", "caro"}, set(users))
+        auth = CloudAuth(users, "session-secret-for-tests-at-least-32-characters")
+        self.assertTrue(auth.verify_password("caro", "clave-caro"))
+        with self.assertRaises(ValueError):
+            CloudAuth({}, "session-secret-for-tests-at-least-32-characters")
 
 
 class CloudWebTest(unittest.TestCase):
@@ -45,6 +65,7 @@ class CloudWebTest(unittest.TestCase):
         self.auth = CloudAuth({
             "ana": password_hash("clave-de-prueba-larga", salt=b"1" * 16),
             "bea": password_hash("segunda-clave-larga", salt=b"2" * 16),
+            "caro": password_hash("tercera-clave-larga", salt=b"3" * 16),
         }, "session-secret-for-tests-at-least-32-characters")
         self.app = CloudWeb(self.db, self.auth)
 
@@ -98,6 +119,12 @@ class CloudWebTest(unittest.TestCase):
                               data={"csrf": self.auth.csrf_token(ticket.split("=", 1)[1])})
         self.assertEqual(303, int(logout["status"][:3]))
         self.assertIn("Max-Age=0", logout["headers"]["Set-Cookie"])
+
+        third_login = self.request("action=login", method="POST",
+                                   data={"user": "caro", "password": "tercera-clave-larga"})
+        self.assertEqual(303, int(third_login["status"][:3]))
+        third_cookie = third_login["headers"]["Set-Cookie"].split(";", 1)[0]
+        self.assertIn(b"Resoluci", self.request(cookie=third_cookie)["body"])
 
     def test_draft_is_in_memory_and_rejects_csrf_or_other_day(self):
         ticket = self.ticket()

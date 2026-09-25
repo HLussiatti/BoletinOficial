@@ -47,9 +47,9 @@ def _unb64(value: str) -> bytes:
 
 class CloudAuth:
     def __init__(self, users: dict[str, str], secret: str):
-        if len(users) != 2 or any(not name or not _valid_hash(value)
-                                  for name, value in users.items()):
-            raise ValueError("EPE_WEB_USERS debe contener dos usuarios con hashes válidos")
+        if not users or any(not name or not _valid_hash(value)
+                            for name, value in users.items()):
+            raise ValueError("EPE_WEB_USERS debe contener usuarios con hashes válidos")
         if len(secret) < 32:
             raise ValueError("EPE_WEB_SESSION_SECRET debe tener al menos 32 caracteres")
         self.users = users
@@ -120,14 +120,19 @@ class CloudAuth:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Crear hash de contraseña para un usuario web")
-    parser.add_argument("--user", required=True)
+    parser = argparse.ArgumentParser(description="Crear hashes de contraseña para usuarios web")
+    parser.add_argument("--user", action="append", required=True)
     args = parser.parse_args()
-    password = getpass("Contraseña: ")
-    repeated = getpass("Repetir contraseña: ")
-    if password != repeated:
-        raise SystemExit("Las contraseñas no coinciden")
-    print(json.dumps({args.user: password_hash(password)}, ensure_ascii=False))
+    if len(set(args.user)) != len(args.user) or any(not name.strip() for name in args.user):
+        raise SystemExit("Los nombres de usuario deben ser únicos y no vacíos")
+    users = {}
+    for name in args.user:
+        password = getpass(f"Contraseña de {name}: ")
+        repeated = getpass(f"Repetir contraseña de {name}: ")
+        if password != repeated:
+            raise SystemExit(f"Las contraseñas de {name} no coinciden")
+        users[name] = password_hash(password)
+    print(json.dumps(users, ensure_ascii=False))
 
 
 if __name__ == "__main__":

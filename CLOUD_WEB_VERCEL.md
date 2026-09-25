@@ -14,7 +14,7 @@ por fecha, relevancia y texto, exporta la página a CSV y descarga borradores
 construye en memoria y no incluye adjuntos. Los enlaces de fuente apuntan al
 BORA. El sitio no escribe en Turso ni ejecuta la consulta diaria ni Gemini.
 
-El acceso requiere dos usuarios. Las contraseñas se guardan como hashes
+El acceso admite los tres usuarios configurados. Las contraseñas se guardan como hashes
 PBKDF2; una cookie firmada expira a las 12 horas. Las acciones POST validan
 origen y token CSRF. Las respuestas privadas llevan `Cache-Control: no-store`.
 La contraseña, el token de Turso y el secreto de sesión no van al repositorio.
@@ -34,18 +34,17 @@ construir un borrador en memoria. No imprime el contenido ni los secretos.
 La ejecución del 25/09/2026 contra Turso respondió `latest_date: 2026-09-24`,
 `visible_count: 3`, `page_rows: 3` y `draft: ok`.
 
-## Preparar credenciales para dos personas
+## Preparar credenciales para tres personas
 
-Generar un hash por persona en PowerShell. `getpass` pide cada contraseña sin
-mostrarla ni dejarla en el historial:
+Generar un único JSON en PowerShell. `getpass` pide cada contraseña dos veces
+sin mostrarla ni dejarla en el historial:
 
 ```powershell
-.\.venv\Scripts\python.exe -m epe_boletin.cloud_auth --user USUARIO_1
-.\.venv\Scripts\python.exe -m epe_boletin.cloud_auth --user USUARIO_2
+.\.venv\Scripts\python.exe -m epe_boletin.cloud_auth --user USUARIO_1 --user USUARIO_2 --user USUARIO_3
 ```
 
-Combinar los dos pares impresos en un solo objeto JSON para `EPE_WEB_USERS`,
-por ejemplo `{"USUARIO_1":"pbkdf2_sha256$...","USUARIO_2":"pbkdf2_sha256$..."}`.
+Copiar la línea JSON completa a `EPE_WEB_USERS`, sin editar sus comillas ni
+separadores. El código acepta cualquier cantidad positiva de usuarios.
 Generar además un secreto de sesión aleatorio:
 
 ```powershell
@@ -82,7 +81,7 @@ GitHub. Generarla desde la raíz del worktree:
 El script sólo copia archivos `.py` del paquete y los cinco archivos de
 entrada/configuración. Rechaza un destino que ya exista. El resultado queda
 en `tmp/`, fuera de Git; nunca incluye la base depurada ni las credenciales.
-Si `npm.cmd` no existe en PowerShell, instalar [Node.js LTS para Windows](https://nodejs.org/en/download)
+Si se permite instalar programas, instalar [Node.js LTS para Windows](https://nodejs.org/en/download)
 y abrir una nueva terminal. Luego instalar la
 [CLI oficial de Vercel](https://vercel.com/docs/cli):
 
@@ -92,6 +91,25 @@ Set-Location 'RUTA_DEL_WORKTREE\tmp\vercel_preview_ready'
 vercel.cmd login
 vercel.cmd link
 ```
+
+### Windows sin permisos para instalar Node.js
+
+Descargar el [ZIP oficial de Node.js LTS para Windows x64](https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip)
+en `Descargas`. El ZIP se extrae dentro de `tmp/` sin ejecutar un instalador.
+Desde la raíz del worktree, en PowerShell:
+
+```powershell
+Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\node-v24.21.0-win-x64.zip" -DestinationPath 'tmp\node-portable'
+$nodeDir = (Resolve-Path 'tmp\node-portable\node-v24.21.0-win-x64').Path
+$env:Path = "$nodeDir;$env:Path"
+& "$nodeDir\node.exe" --version
+& "$nodeDir\npx.cmd" --yes vercel@latest --version
+```
+
+`npx` descarga la CLI a la caché del usuario, sin instalación global. Para
+los pasos siguientes, usar `& "$nodeDir\npx.cmd" --yes vercel@latest` en lugar
+de `vercel.cmd` y mantener abierta la misma sesión de PowerShell. Si el ZIP ya
+se extrajo, no repetir `Expand-Archive`.
 
 `vercel link` permite crear un proyecto nuevo. Elegir la cuenta propia y usar
 la carpeta actual como raíz. No conectar un repositorio Git para este piloto.
@@ -103,7 +121,7 @@ vercel.cmd deploy
 ```
 
 Sin `--prod`, Vercel crea una Preview. Verificar que el acceso sin
-sesión sólo muestre el formulario, que ambos usuarios puedan entrar, que los
+sesión sólo muestre el formulario, que los tres usuarios puedan entrar, que los
 filtros y el CSV coincidan con Turso y que el `.eml` se abra como borrador sin
 adjuntos. Comprobar también que las URLs oficiales lleven al BORA.
 
