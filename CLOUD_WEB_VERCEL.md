@@ -9,7 +9,7 @@ textos extraídos históricamente de PDF y 599 resúmenes completos.
 
 `api/index.py` expone una aplicación WSGI para Vercel. El sitio consulta Turso
 en cada petición, muestra hasta 50 publicaciones por página, permite filtrar
-por fecha, relevancia y texto, exporta la página a CSV y descarga borradores
+por período, relevancia, tipo y texto, exporta la página a CSV y descarga borradores
 `.eml` de un solo día con hasta 25 publicaciones resumidas. El `.eml` se
 construye en memoria y no incluye adjuntos. Los enlaces de fuente apuntan al
 BORA. El sitio no escribe en Turso ni ejecuta la consulta diaria ni Gemini.
@@ -130,7 +130,7 @@ las variables Preview. El primer formulario de Preview rechazó el POST del
 navegador; se sustituyó la comprobación de cabeceras por el token del
 formulario. Tras un `503` al cargar publicaciones, se añadió la dependencia
 `libsql` al runtime Linux y un registro de errores sin valores secretos. La
-Preview actual, estado `Ready`, está en
+primera Preview funcional está en
 `https://epe-boletin-preview-iufemfs6t-ame-bbfb.vercel.app`. Los siguientes
 `vercel deploy` sin `--prod` crean nuevas Previews.
 
@@ -149,6 +149,51 @@ oficiales lleven al BORA.
 La ejecución diaria, respaldo automatizado y despliegue de producción siguen
 pendientes. La configuración de Vercel no debe apuntar a la carpeta de
 operación local de Windows.
+
+## Punto de reanudación tras el reinicio (25/09/2026)
+
+El usuario abrió la Preview actual e inició sesión como `USUARIO_1`. Su captura
+mostró las tres publicaciones del 24/09/2026, lo que confirmó el inicio de
+sesión y la lectura de Turso desde Vercel. Se retiraron las tres Previews
+anteriores que habían fallado; `vercel list` mostró solamente la URL actual,
+con estado `Ready` y entorno `Preview`. Las pruebas de ingreso con `USUARIO_2`
+y `USUARIO_3`, CSV, enlaces BORA y descarga de `.eml` aún no fueron confirmadas
+por el usuario.
+
+**Próxima tarea principal:** el usuario señaló que la web desplegada no es
+idéntica a la que se había armado localmente. Comparar la Preview con la
+interfaz local de `src/epe_boletin/web.py`, `web_views.py`, `web_ui.py`,
+`PRODUCT.md`, `DESIGN.md` y `estilo_web_v2.md`. Recuperar en la web de Vercel
+la experiencia y funciones esperadas, respetando que el proceso diario,
+Gemini, archivos locales y acciones administrativas aún requieren decidir
+una arquitectura de ejecución fuera de la función de consulta. Acordar con el
+usuario las diferencias concretas si alguna no surge del código o de la
+comparación visual. Después validar y desplegar una nueva Preview. Conservar
+esta Preview funcional como referencia hasta que la nueva esté verificada.
+
+El 25/09/2026 se creó una segunda Preview con la interfaz local adaptada:
+`https://epe-boletin-preview-2hk1504kq-ame-bbfb.vercel.app` (deployment
+`dpl_C6dVUmKMGbWTeHSzGzt3SF7EY7H1`, estado `Ready`). Reutiliza los estilos
+y el selector de período de la web local. Incluye las vistas Día, Histórico y
+Fallas, cinco métricas, filtros por período/relevancia/tipo/texto, calendario,
+filas con análisis y fuentes, densidad y selección contextual. El proceso
+diario, la generación de resúmenes y los PDF locales aún no tienen ejecución
+ni almacenamiento web; se muestran únicamente enlaces oficiales disponibles.
+El usuario ingresó en esa Preview y confirmó las tres publicaciones reales.
+Las pruebas locales también verificaron calendario, selección, CSV y descarga
+del `.eml` con datos de prueba. Tras ajustar la fecha de Buenos Aires y añadir
+fallas de publicaciones se creó la Preview final de esta revisión:
+`https://epe-boletin-preview-minkza09h-ame-bbfb.vercel.app` (deployment
+`dpl_FSDRh7CBcSthDoFtWFes1qGix24i`, estado `Ready`). La petición anónima
+respondió HTTP 200 con formulario de acceso. Falta la revisión visual y
+funcional del usuario en este último enlace. Conservar la primera Preview
+funcional y la confirmada durante esa revisión.
+
+El worktree contiene cambios locales preexistentes en documentos, scripts y
+`tests/test_web_workflows.py`; no descartarlos ni sobrescribirlos. El bundle
+de Vercel está en `tmp/vercel_preview_ready` y Node portable en
+`tmp/node-portable/node-v24.21.0-win-x64`. No se necesita mantener abierta
+la sesión actual de PowerShell para que la Preview siga funcionando.
 
 Referencias: [runtime Python de Vercel](https://vercel.com/docs/functions/runtimes/python),
 [configuración `vercel.json`](https://vercel.com/docs/project-configuration/vercel-json).

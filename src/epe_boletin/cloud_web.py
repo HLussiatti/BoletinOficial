@@ -16,6 +16,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from .cloud_auth import CloudAuth, SESSION_SECONDS
 from .cloud_db import TursoDatabase
 from .mail import BulletinItem, _message
+from .web_ui import CSS
 
 
 PAGE_SIZE = 50
@@ -34,23 +35,12 @@ RELEVANCE = {
     "not_relevant": "Descartadas",
     "all": "Todas",
 }
-STYLE = """
-:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#243443;background:#f2f5f4}
-*{box-sizing:border-box}body{margin:0}a{color:#086d71}a:hover{text-decoration-thickness:2px}
-.shell{max-width:1150px;margin:auto;padding:24px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px}
-h1{font-size:1.5rem;margin:0}h2{font-size:1.15rem}.muted{color:#5a6c71}.pill{background:#e1f2ec;color:#135b46;padding:5px 10px;border-radius:20px}
-form.filters,.card,.login{background:white;border:1px solid #d8e3e1;border-radius:12px;padding:18px;margin:18px 0}
-.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end}.filters label{display:grid;gap:5px;font-size:.86rem;font-weight:600}
-input,select,button{font:inherit;padding:9px 10px;border:1px solid #b5c7c4;border-radius:7px;background:white;color:inherit}
-button{cursor:pointer;background:#066b60;color:white;border-color:#066b60}button:hover{background:#07574e}
-.secondary{background:white;color:#066b60}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
-.list{list-style:none;padding:0}.item{background:white;border:1px solid #d8e3e1;border-radius:12px;padding:17px;margin:10px 0}
-.item-head{display:flex;gap:12px;align-items:start}.item h2{margin:0 0 5px}.item p{margin:8px 0;line-height:1.45}
-.meta{font-size:.84rem;color:#5a6c71}.badge{font-size:.8rem;background:#e4f0ee;padding:4px 8px;border-radius:6px;display:inline-block}
-details{margin-top:10px}summary{cursor:pointer;font-weight:600}.actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
-.paging{display:flex;gap:12px;align-items:center;margin:20px 0}.login{max-width:420px;margin:10vh auto}.login label{display:grid;gap:5px;margin:12px 0}
-.error{color:#a12d2d}.notice{background:#e7f4ee;border-left:4px solid #2d8b6a;padding:12px;margin:12px 0}
-footer{margin:30px 0;color:#5a6c71;font-size:.84rem}@media(max-width:650px){.shell{padding:14px}.top{align-items:start}.filters>*{flex:1 1 150px}}
+STYLE = CSS + """
+.login{width:min(420px,100%);margin:10vh auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s5)}
+.login h1{font-size:var(--fs-display);margin-bottom:var(--s3)}.login p{margin:var(--s2) 0;line-height:1.5}
+.login label{display:grid;gap:var(--s1);margin:var(--s4) 0;font-weight:600}
+.login button{margin-top:var(--s2)}.login .error{color:var(--sig-alta)}
+@media(max-width:650px){.login{margin-top:7vh}}
 """
 
 
@@ -79,33 +69,60 @@ def _csv_cell(value: object) -> str:
 @dataclass(frozen=True)
 class Filters:
     day: str
+    end_day: str = ""
     relevance: str = "active"
+    category: str = ""
     text: str = ""
+    view: str = "day"
+    month: str = ""
     page: int = 1
 
     @classmethod
     def from_query(cls, query: dict[str, list[str]], latest: str) -> Filters:
-        day = query.get("date", [latest])[0].strip()
-        if day:
+        view = query.get("view", ["day"])[0]
+        if view not in ("day", "history", "failures"):
+            raise RequestError("Vista inválida")
+        day = query.get("date", [latest if view == "day" else ""])[0].strip()
+        end_day = query.get("to", [""])[0].strip()
+        for value in (day, end_day):
+            if not value:
+                continue
             try:
-                if date.fromisoformat(day).isoformat() != day:
+                if date.fromisoformat(value).isoformat() != value:
                     raise ValueError
             except ValueError as exc:
                 raise RequestError("Fecha inválida") from exc
+        if end_day and (not day or end_day < day):
+            raise RequestError("El período seleccionado es inválido")
+        if end_day == day:
+            end_day = ""
         relevance = query.get("relevance", ["active"])[0]
         if relevance not in RELEVANCE:
             raise RequestError("Filtro de relevancia inválido")
+        category = query.get("category", [""])[0].strip()
+        if len(category) > 100:
+            raise RequestError("El tipo de publicación es demasiado largo")
         text = query.get("q", [""])[0].strip()
         if len(text) > 100:
             raise RequestError("La búsqueda supera 100 caracteres")
+        month = query.get("month", [""])[0]
+        if month:
+            try:
+                if date.fromisoformat(month + "-01").strftime("%Y-%m") != month:
+                    raise ValueError
+            except ValueError as exc:
+                raise RequestError("Mes inválido") from exc
         page_text = query.get("page", ["1"])[0]
         if not page_text.isdigit() or not 1 <= int(page_text) <= 1000:
             raise RequestError("Página inválida")
-        return cls(day, relevance, text, int(page_text))
+        return cls(day, end_day, relevance, category, text, view, month, int(page_text))
 
-    def url(self, page: int | None = None) -> str:
-        return "/?" + urlencode({"date": self.day, "relevance": self.relevance,
-                                   "q": self.text, "page": self.page if page is None else page})
+    def url(self, **updates: object) -> str:
+        values = {"date": self.day, "to": self.end_day, "relevance": self.relevance,
+                  "category": self.category, "q": self.text, "view": self.view,
+                  "month": self.month, "page": self.page}
+        values.update(updates)
+        return "/?" + urlencode({key: value for key, value in values.items() if value})
 
 
 class CloudWeb:
@@ -131,8 +148,15 @@ class CloudWeb:
         where = ["p.source='BORA'"]
         args: list[object] = []
         if filters.day:
-            where.append("p.publication_date=?")
-            args.append(filters.day)
+            if filters.end_day:
+                where.append("p.publication_date BETWEEN ? AND ?")
+                args.extend((filters.day, filters.end_day))
+            else:
+                where.append("p.publication_date=?")
+                args.append(filters.day)
+        if filters.category:
+            where.append("p.category=?")
+            args.append(filters.category)
         if filters.relevance == "active":
             where.append("p.relevance!='not_relevant'")
         elif filters.relevance == "selected":
@@ -151,8 +175,10 @@ class CloudWeb:
             rows = connection.execute(f"""
                 SELECT p.id,p.source_id,p.publication_date,p.category,p.agency,
                        p.title,p.reference,p.description,p.detail_url,p.relevance,
-                       p.relevance_reason,p.has_annexes,
+                       p.relevance_reason,p.has_annexes,p.first_seen_at,
+                       p.summary_status,p.document_status,
                        s.conceptual_summary,s.epesf_relationship,s.effective_date,
+                       s.model summary_model,
                        n.pdf_url,n.pdf_availability,n.annex_status
                 FROM publications p
                 LEFT JOIN summaries s ON s.id=(
@@ -167,6 +193,46 @@ class CloudWeb:
                 LIMIT ? OFFSET ?
             """, (*args, PAGE_SIZE, (filters.page - 1) * PAGE_SIZE)).fetchall()
         return total, rows
+
+    def _overview(self, filters: Filters) -> dict[str, object]:
+        where = ["source='BORA'"]
+        args: list[str] = []
+        if filters.day:
+            if filters.end_day:
+                where.append("publication_date BETWEEN ? AND ?")
+                args.extend((filters.day, filters.end_day))
+            else:
+                where.append("publication_date=?")
+                args.append(filters.day)
+        with self._database().connect() as connection:
+            groups = connection.execute(
+                f"SELECT category,relevance,COUNT(*) count FROM publications WHERE {' AND '.join(where)} "
+                "GROUP BY category,relevance", tuple(args)).fetchall()
+            failed = int(connection.execute(
+                "SELECT COUNT(*) count FROM coverage WHERE source='BORA' AND status='failed'"
+            ).fetchone()["count"])
+            last = connection.execute(
+                "SELECT status,finished_at FROM runs ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            coverage = (connection.execute(
+                "SELECT status,error FROM coverage WHERE source='BORA' AND publication_date=?",
+                (filters.day,)).fetchone() if filters.day and not filters.end_day else None)
+        categories = sorted({str(row["category"]) for row in groups if row["category"]},
+                            key=str.casefold)
+        scoped = [row for row in groups if not filters.category or row["category"] == filters.category]
+        counts = {key: 0 for key in RELEVANCE}
+        for row in scoped:
+            value = int(row["count"])
+            relevance = str(row["relevance"])
+            counts["all"] += value
+            if relevance != "not_relevant":
+                counts["active"] += value
+            if relevance in ("direct_epesf", "potential_sector_impact"):
+                counts["selected"] += value
+            if relevance in counts:
+                counts[relevance] += value
+        return {"categories": categories, "counts": counts, "failed": failed,
+                "last": last, "coverage": coverage}
 
     def _draft(self, body: dict[str, list[str]]) -> tuple[str, bytes]:
         day_text = body.get("date", [""])[0]
@@ -213,8 +279,15 @@ class CloudWeb:
             raise RequestError("El borrador supera 10 MB; seleccioná menos publicaciones")
         return f"boletin_{day:%Y_%m_%d}.eml", content
 
-    def _csv(self, filters: Filters) -> bytes:
+    def _csv(self, filters: Filters, selected: list[str] | None = None) -> bytes:
         _, rows = self._listing(filters)
+        if selected:
+            if len(selected) > PAGE_SIZE or any(not item.isdigit() for item in selected):
+                raise RequestError("Selección de CSV inválida")
+            ids = {int(item) for item in selected}
+            rows = [row for row in rows if int(row["id"]) in ids]
+            if len(rows) != len(ids):
+                raise RequestError("La selección no pertenece a esta página")
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(("fecha", "organismo", "tipo", "titulo", "referencia",
@@ -228,52 +301,8 @@ class CloudWeb:
         return output.getvalue().encode("utf-8-sig")
 
     def _page(self, filters: Filters, csrf: str, user: str) -> bytes:
-        total, rows = self._listing(filters)
-        chosen = f"{_h(filters.day)}" if filters.day else "Todo el histórico"
-        options = "".join(f'<option value="{_h(key)}"{" selected" if key == filters.relevance else ""}>{_h(value)}</option>'
-                          for key, value in RELEVANCE.items())
-        items = []
-        for row in rows:
-            official = _official_url(row["detail_url"])
-            pdf = _official_url(row["pdf_url"])
-            has_summary = bool(row["conceptual_summary"])
-            select = (f'<input type="checkbox" name="selected" value="{int(row["id"])}" '
-                      f'aria-label="Incluir {_h(row["title"])}" >') if has_summary and filters.day else ""
-            summary = (f'<p><strong>Resumen:</strong> {_h(row["conceptual_summary"])}</p>'
-                       f'<p><strong>Relación con EPESF:</strong> {_h(row["epesf_relationship"])}</p>'
-                       f'<p><strong>Vigencia:</strong> {_h(row["effective_date"])}</p>') if has_summary else '<p class="muted">Sin resumen completo.</p>'
-            annex = '<p class="muted">Tiene anexo no analizado.</p>' if row["has_annexes"] or row["annex_status"] == "unread" else ""
-            links = (f'<a href="{_h(official)}" target="_blank" rel="noopener noreferrer">Aviso oficial</a>' if official else "")
-            if pdf:
-                links += f' <a href="{_h(pdf)}" target="_blank" rel="noopener noreferrer">PDF oficial</a>'
-            items.append(f'''<li class="item"><div class="item-head">{select}<div>
-                <div class="meta">{_h(row["publication_date"])} · {_h(row["category"])} · {_h(row["agency"])}</div>
-                <h2>{_h(row["title"])}</h2><span class="badge">{_h(RELEVANCE.get(str(row["relevance"]), str(row["relevance"])))}</span>
-                <span class="meta">{_h(row["reference"])}</span></div></div>
-                <details><summary>Ver análisis y fuente</summary>{summary}{annex}
-                <p>{_h(row["description"])}</p><p class="meta">{_h(row["relevance_reason"])}</p>
-                <div class="actions">{links}</div></details></li>''')
-        previous = f'<a href="{_h(filters.url(filters.page - 1))}">Anterior</a>' if filters.page > 1 else ""
-        following = f'<a href="{_h(filters.url(filters.page + 1))}">Siguiente</a>' if filters.page * PAGE_SIZE < total else ""
-        draft = (f'<input type="hidden" name="date" value="{_h(filters.day)}">'
-                 f'<input type="hidden" name="csrf" value="{_h(csrf)}">'
-                 '<button type="submit">Descargar correo de las seleccionadas</button>'
-                 '<p class="muted">El borrador no incluye adjuntos. Los enlaces llevan al BORA.</p>') if filters.day else '<p class="muted">Elegí un solo día para preparar un correo.</p>'
-        content = f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>Boletín Oficial EPESF</title><style>{STYLE}</style></head><body><main class="shell">
-            <header class="top"><div><h1>Boletín Oficial EPESF</h1><span class="muted">Publicaciones nacionales relevantes para EPESF</span></div>
-            <form action="/?action=logout" method="post"><input type="hidden" name="csrf" value="{_h(csrf)}"><button class="secondary">Salir ({_h(user)})</button></form></header>
-            <form class="filters" method="get" action="/"><label>Fecha (vacía: histórico)<input name="date" type="date" value="{_h(filters.day)}"></label>
-            <label>Relevancia<select name="relevance">{options}</select></label>
-            <label>Buscar<input name="q" maxlength="100" value="{_h(filters.text)}"></label><button>Filtrar</button></form>
-            <div class="toolbar"><div><strong>{total} publicaciones</strong> · {chosen}</div>
-            <div class="actions"><a href="/?date=&amp;relevance=active">Ver histórico</a>
-            <a href="{_h(filters.url())}&amp;action=export">Exportar esta página a CSV</a></div></div>
-            <form method="post" action="/?action=draft"><ul class="list">{''.join(items) if items else '<li class="card">No hay publicaciones para este filtro.</li>'}</ul>
-            {draft}</form><nav class="paging" aria-label="Páginas">{previous}<span>Página {filters.page}</span>{following}</nav>
-            <footer>Datos en Turso · Fuentes oficiales en BORA · El correo se genera en memoria.</footer>
-            </main></body></html>'''
-        return content.encode("utf-8")
+        from .cloud_web_views import render
+        return render(self, filters, csrf, user)
 
     def _login_page(self, csrf: str, error: str = "") -> bytes:
         message = f'<p class="error" role="alert">{_h(error)}</p>' if error else ""
@@ -283,7 +312,7 @@ class CloudWeb:
             <form method="post" action="/?action=login"><input type="hidden" name="login_csrf" value="{_h(csrf)}">
             <label>Usuario<input name="user" autocomplete="username" required></label>
             <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
-            <button type="submit">Ingresar</button></form></div></main></body></html>''').encode("utf-8")
+            <button class="primary" type="submit">Ingresar</button></form></div></main></body></html>''').encode("utf-8")
 
     def _login_response(self, start_response: Callable, auth: CloudAuth,
                         status: int = 200, error: str = ""):
@@ -331,10 +360,15 @@ class CloudWeb:
                 return self._respond(start_response, 200, content, [
                     ("Content-Type", "message/rfc822"),
                     ("Content-Disposition", f'attachment; filename="{filename}"')])
+            if action == "ui" and method == "GET":
+                from .cloud_web_views import CLOUD_SCRIPT
+                return self._respond(start_response, 200, CLOUD_SCRIPT.encode("utf-8"), [
+                    ("Content-Type", "text/javascript; charset=utf-8")])
             if method != "GET" or action:
                 if method == "GET" and action == "export":
                     filters = Filters.from_query(query, self._latest_date())
-                    return self._respond(start_response, 200, self._csv(filters), [
+                    return self._respond(start_response, 200,
+                                         self._csv(filters, query.get("selected")), [
                         ("Content-Type", "text/csv; charset=utf-8"),
                         ("Content-Disposition", 'attachment; filename="publicaciones.csv"')])
                 return self._respond(start_response, 404, b"No encontrado")
@@ -362,7 +396,7 @@ class CloudWeb:
                    ("Cache-Control", "no-store"),
                    ("X-Content-Type-Options", "nosniff"),
                    ("Referrer-Policy", "no-referrer"),
-                   ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")]
+                   ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")]
         for key, value in extra or []:
             headers = [(name, current) for name, current in headers
                        if name.lower() != key.lower()]

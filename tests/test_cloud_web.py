@@ -193,6 +193,50 @@ class CloudWebTest(unittest.TestCase):
         rows = list(csv.DictReader(io.StringIO(result["body"].decode("utf-8-sig"))))
         self.assertEqual("'=2+2", rows[0]["titulo"])
 
+    def test_local_style_views_range_category_calendar_and_selected_csv(self):
+        with self.db.connect() as connection:
+            connection.execute("""
+                INSERT INTO publications(source,source_id,publication_date,section,
+                    category,agency,title,reference,description,detail_url,
+                    relevance,relevance_reason,first_seen_at,last_seen_at)
+                VALUES('BORA','124','2026-09-23','primera','DISPOSICIONES',
+                    'Organismo de prueba','Disposición de prueba','DISP 2/2026',
+                    'Texto de prueba','https://www.boletinoficial.gob.ar/detalleAviso/primera/124/20260923',
+                    'needs_review','Pendiente','2026-09-23T10:00:00','2026-09-23T10:00:00')
+            """)
+            connection.execute("""
+                INSERT INTO coverage(source,publication_date,status,checked_at,error)
+                VALUES('BORA','2026-09-22','failed','2026-09-22T10:00:00','Prueba de falla')
+            """)
+            connection.execute("UPDATE publications SET summary_status='error' WHERE id=?",
+                               (self.publication_id,))
+        cookie = "epe_session=" + self.ticket()
+        day = self.request("date=2026-09-24", cookie=cookie)
+        self.assertEqual(200, int(day["status"][:3]))
+        self.assertIn(b'class="topbar"', day["body"])
+        self.assertIn(b'class="metrics"', day["body"])
+        self.assertIn(b'class="column-head"', day["body"])
+        self.assertIn("script-src 'self'", day["headers"]["Content-Security-Policy"])
+        period = self.request("date=2026-09-23&to=2026-09-24", cookie=cookie)
+        self.assertIn(b"Disposici", period["body"])
+        self.assertIn(b"Resoluci", period["body"])
+        category = self.request("date=2026-09-23&to=2026-09-24&category=DISPOSICIONES", cookie=cookie)
+        self.assertIn(b"Disposici", category["body"])
+        self.assertNotIn(b"Resoluci\xc3\xb3n de prueba", category["body"])
+        calendar = self.request("view=history&month=2026-09", cookie=cookie)
+        self.assertEqual(200, int(calendar["status"][:3]))
+        self.assertIn(b'class="calendar-grid"', calendar["body"])
+        failures = self.request("view=failures", cookie=cookie)
+        self.assertIn(b"Prueba de falla", failures["body"])
+        self.assertIn(b"Revisar: resumen", failures["body"])
+        selected = self.request(f"date=2026-09-24&action=export&selected={self.publication_id}", cookie=cookie)
+        self.assertEqual(200, int(selected["status"][:3]))
+        self.assertEqual(1, len(list(csv.DictReader(io.StringIO(selected["body"].decode("utf-8-sig"))))))
+        script = self.request("action=ui", cookie=cookie)
+        self.assertEqual("text/javascript; charset=utf-8", script["headers"]["Content-Type"])
+        self.assertIn(b"range-picker", script["body"])
+        self.assertNotIn(b"/prepare-email", script["body"])
+
 
 if __name__ == "__main__":
     unittest.main()

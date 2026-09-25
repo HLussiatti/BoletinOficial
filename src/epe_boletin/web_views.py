@@ -81,11 +81,12 @@ def category_repeats_title(category: str, title: str) -> bool:
     )
 
 
-def calendar_view(app: WebApplication, query: Query) -> str:
+def calendar_view(app: WebApplication, query: Query, today: date | None = None) -> str:
+    today = today or date.today()
     try:
         month = date.fromisoformat(query.month + '-01')
     except ValueError:
-        month = date.fromisoformat((app.latest_date() or date.today().isoformat())[:7] + '-01')
+        month = date.fromisoformat((app.latest_date() or today.isoformat())[:7] + '-01')
     next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
     prev_month = (month - timedelta(days=1)).replace(day=1)
     with app.database.connect() as connection:
@@ -100,11 +101,11 @@ def calendar_view(app: WebApplication, query: Query) -> str:
     peak = max((r['relevant'] for r in counts.values()), default=1) or 1
     names = ('enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')
     with app.database.connect() as connection:
-        first = connection.execute('SELECT MIN(publication_date) FROM (SELECT publication_date FROM publications UNION SELECT publication_date FROM coverage)').fetchone()[0]
+        first = connection.execute('SELECT MIN(publication_date) first FROM (SELECT publication_date FROM publications UNION SELECT publication_date FROM coverage)').fetchone()['first']
     first_month = date.fromisoformat(str(first)[:7] + '-01') if first else month
     first_month = min(first_month, month)
     month_options = []
-    cursor = max(date.today().replace(day=1), month)
+    cursor = max(today.replace(day=1), month)
     while cursor >= first_month:
         value = cursor.strftime('%Y-%m')
         selected = ' selected' if cursor == month else ''
@@ -135,16 +136,16 @@ def calendar_view(app: WebApplication, query: Query) -> str:
                 classes.append(f'volume-{min(3, max(1, (count["relevant"]*3+peak-1)//peak))}')
             if state == 'failed':
                 classes.append('failed')
-            if day == date.today().isoformat():
+            if day == today.isoformat():
                 classes.append('today')
             if not state and not count['total']:
                 classes.append('unprocessed')
             label = f'{count["relevant"]} ' + ('relevante' if count['relevant']==1 else 'relevantes')
             if state == 'failed': label = 'Consulta fallida'
-            elif not state and not count['total']: label = 'Sin consultar' if day <= date.today().isoformat() else 'Fecha futura'
+            elif not state and not count['total']: label = 'Sin consultar' if day <= today.isoformat() else 'Fecha futura'
             elif state == 'not_published': label = 'Sin edición'
             cells += f'<a class="{" ".join(classes)}" href="{_h(url(query, date=day, to="", view="day", month=""))}" aria-label="{_h(nice_day(day))}: {_h(label)}"><strong>{number}</strong><span>{_h(label)}</span><span class="calendar-total">{count["total"]} publicaciones</span></a>'
-    next_link = f'<a href="{_h(url(query, month=next_month.strftime("%Y-%m")))}">Mes siguiente {icon("right")}</a>' if next_month <= date.today().replace(day=1) else '<span class="context">Mes actual</span>'
+    next_link = f'<a href="{_h(url(query, month=next_month.strftime("%Y-%m")))}">Mes siguiente {icon("right")}</a>' if next_month <= today.replace(day=1) else '<span class="context">Mes actual</span>'
     return f'<section aria-label="Calendario histórico"><div class="calendar-nav"><a href="{_h(url(query, month=prev_month.strftime("%Y-%m")))}">{icon("left")} Mes anterior</a><div class="calendar-heading"><h2>{names[month.month-1].capitalize()} {month.year}</h2>{month_picker}</div>{next_link}</div><div class="calendar-grid">{cells}</div><p class="calendar-legend"><span>La intensidad indica el volumen de relevantes.</span><span class="error-text">Borde rojo: consulta fallida.</span><span>Sin consultar: cobertura pendiente.</span></p></section>'
 
 
