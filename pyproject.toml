@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["pyinstaller>=6.10,<7"]
+cloud = ["libsql>=0.1.11,<0.2"]
 
 [project.scripts]
 epe-boletin = "epe_boletin.cli:main"

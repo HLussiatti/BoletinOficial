@@ -78,6 +78,7 @@ class SummaryCandidate:
     detail_url: str
     full_text: str
     source_sha256: str
+    source_limitations: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +124,7 @@ def _candidate_input(candidate: SummaryCandidate) -> str:
         "fecha_publicacion": candidate.publication_date,
         "clasificacion_preliminar": candidate.relevance,
         "motivo_preliminar": candidate.relevance_reason,
+        "limites_de_la_fuente": candidate.source_limitations,
         "texto_documentos": candidate.full_text,
     }, ensure_ascii=False)
 
@@ -160,7 +162,8 @@ def _apply_review_guard(candidate: SummaryCandidate,
         "epesf" in normalized
         or "empresa provincial de la energia de santa fe" in normalized
     )
-    return summary if named or summary.needs_review else replace(summary, needs_review=True)
+    return (summary if (named or summary.needs_review) and not candidate.source_limitations
+            else replace(summary, needs_review=True))
 
 
 class OpenAISummarizer:

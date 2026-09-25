@@ -7,7 +7,7 @@ import re
 import time
 import unicodedata
 from collections.abc import Callable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
@@ -31,6 +31,16 @@ ANNEX_RE = re.compile(
     r"['\"](?P<number>[^'\"]+)['\"]\s*,\s*['\"](?P<id>[^'\"]+)['\"]\s*,\s*"
     r"['\"](?P<date>\d{8})['\"]\s*,\s*['\"](?P<endpoint>[^'\"]+)['\"]"
 )
+ANNEX_NOTE_RE = re.compile(r"anexo/s? que integra|anexos? que integra", re.IGNORECASE)
+
+
+@dataclass(frozen=True, slots=True)
+class NoticeContent:
+    text: str
+    notice_url: str
+    pdf_url: str
+    pdf_availability: str
+    annex_status: str
 
 
 class BoraError(RuntimeError):
@@ -47,6 +57,32 @@ class BoraNetworkError(BoraError):
 
 def _clean(node) -> str:
     return node.get_text(" ", strip=True) if node else ""
+
+
+def parse_notice_html(html: str, publication: Publication) -> NoticeContent:
+    soup = BeautifulSoup(html, "html.parser")
+    body = soup.select_one("#cuerpoDetalleAviso")
+    title = soup.select_one("#tituloDetalleAviso")
+    if body is None or title is None:
+        raise BoraError("El detalle del BORA no contiene el cuerpo del aviso")
+    for node in body.select("script,style,noscript"):
+        node.decompose()
+    blocks = body.find_all(["p", "table", "ul", "ol"], recursive=False)
+    paragraphs = [_clean(node) for node in blocks]
+    text = "\n".join(part for part in paragraphs if part)
+    if not text:
+        text = body.get_text("\n", strip=True)
+    if len(text) < 40:
+        raise BoraError("El texto HTML del aviso está vacío o incompleto")
+    annexes = bool(soup.select_one('[onclick*="descargarPDFAnexo"]'))
+    annexes = annexes or publication.has_annexes or bool(ANNEX_NOTE_RE.search(text))
+    return NoticeContent(
+        text=text, notice_url=publication.detail_url,
+        pdf_url=(f"{BASE_URL}/pdf/aviso/{publication.section}/"
+                 f"{publication.source_id}/{publication.publication_date:%Y%m%d}"),
+        pdf_availability="unknown",
+        annex_status="unread" if annexes else "none",
+    )
 
 
 def parse_publications(html: str, publication_date: date,
@@ -158,6 +194,43 @@ class BoraClient:
     def _get_text(self, url: str) -> tuple[str, str]:
         response = self._request("get", url)
         return response.text, response.url
+
+    def fetch_notice(self, publication: Publication,
+                     fixture: Path | None = None) -> NoticeContent:
+        parsed = urlparse(publication.detail_url)
+        match = DETAIL_RE.fullmatch(parsed.path)
+        if (parsed.scheme != "https" or parsed.netloc != "www.boletinoficial.gob.ar"
+                or match is None or match.group("section") != publication.section
+                or match.group("id") != publication.source_id
+                or match.group("date") != publication.publication_date.strftime("%Y%m%d")):
+            raise BoraError(f"Enlace de aviso inválido: {publication.detail_url}")
+        if fixture:
+            html = fixture.read_text(encoding="utf-8")
+        else:
+            html, final_url = self._get_text(publication.detail_url)
+            if urlparse(final_url).path != parsed.path or urlparse(final_url).netloc != parsed.netloc:
+                raise BoraError("El BORA redirigió el detalle a otro aviso")
+        content = parse_notice_html(html, publication)
+        if fixture:
+            return content
+        try:
+            response = self.session.head(content.pdf_url, timeout=self.timeout,
+                                         allow_redirects=True)
+            status = response.status_code
+            final_pdf = urlparse(getattr(response, "url", content.pdf_url))
+            media_type = getattr(response, "headers", {}).get("Content-Type", "")
+            media_type = media_type.split(";", 1)[0].strip().lower()
+            valid_pdf_response = (
+                final_pdf.scheme == "https"
+                and final_pdf.netloc == "www.boletinoficial.gob.ar"
+                and final_pdf.path.startswith("/pdf/")
+                and media_type in ("", "application/pdf", "application/octet-stream")
+            )
+            availability = ("available" if status == 200 and valid_pdf_response
+                            else "missing" if status in (404, 410) else "unknown")
+        except requests.RequestException:
+            availability = "unknown"
+        return replace(content, pdf_availability=availability)
 
     def fetch_edition(self, day: date, fixture: Path | None = None) -> Edition:
         ymd = day.strftime("%Y%m%d")

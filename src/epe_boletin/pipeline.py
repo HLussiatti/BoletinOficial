@@ -42,7 +42,10 @@ def days_between(start: date, end: date) -> Iterator[date]:
 
 def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
         date_from: date, date_to: date, download: bool = True,
-        fixture_dir: Path | None = None) -> dict[str, int | str]:
+        fixture_dir: Path | None = None,
+        source_mode: str = "local") -> dict[str, int | str]:
+    if source_mode not in ("local", "cloud"):
+        raise ValueError("Modo de fuente inválido")
     db.migrate()
     run_id = db.start_run(mode, date_from, date_to)
     seen = relevant = failed = not_published = downloaded = 0
@@ -75,8 +78,25 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                         publication_id = publication_ids[item.source_id]
                         seen += 1
                         if request_document:
-                            full_text = db.document_text(publication_id)
-                            if download and not fixture_dir and full_text is None:
+                            full_text = (db.notice_text(publication_id) if source_mode == "cloud"
+                                         else db.document_text(publication_id))
+                            if source_mode == "cloud" and full_text is None:
+                                try:
+                                    detail_fixture = None
+                                    if fixture_dir:
+                                        detail_fixture = (fixture_dir /
+                                            f"detalle_{item.source_id}_{day:%Y%m%d}.html")
+                                        if not detail_fixture.exists():
+                                            raise FileNotFoundError(detail_fixture)
+                                    notice = client.fetch_notice(item, detail_fixture)
+                                    db.save_notice(publication_id, notice)
+                                    full_text = notice.text
+                                except Exception as exc:
+                                    message = f"{day}: HTML {item.source_id}: {exc}"
+                                    errors.append(message)
+                                    LOGGER.exception(message)
+                                    failed += 1
+                            if source_mode == "local" and download and not fixture_dir and full_text is None:
                                 try:
                                     path, digest, size = client.download_pdf(
                                         item, data_dir / "documents" / f"{day:%Y}" / f"{day:%m}")
@@ -96,7 +116,7 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                     LOGGER.exception(message)
                                     failed += 1
                             annex_texts: list[str] = []
-                            if download and not fixture_dir and item.has_annexes:
+                            if source_mode == "local" and download and not fixture_dir and item.has_annexes:
                                 try:
                                     for annex in client.fetch_annexes(item):
                                         annex_text = db.document_text(publication_id, annex.kind)
@@ -134,7 +154,8 @@ def run(db: Database, client: BoraClient, data_dir: Path, mode: str,
                                     relevance_rules_version=rules.version,
                                 )
                                 db.update_classification(
-                                    publication_id, final_relevance, reason, "full_text",
+                                    publication_id, final_relevance, reason,
+                                    "html_text" if source_mode == "cloud" else "full_text",
                                     rules.version,
                                 )
                         if item.relevance in RELEVANT:

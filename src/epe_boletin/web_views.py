@@ -252,7 +252,16 @@ def render(app: WebApplication, query: Query, raw_query: str = '') -> bytes:
                 continue
             doc_links.append(f'<a href="/document/{d["id"]}" target="_blank" rel="noopener">{icon("document")}<span>{"PDF principal" if d["kind"]=="main" else "Anexo"} · <span class="pages">{d["page_count"] or "?"} pág.</span></span></a>')
         bora = f'<a href="{_h(row["detail_url"])}" target="_blank" rel="noopener">Aviso en BORA {icon("external")}</a>' if row['detail_url'] else ''
-        shown_docs = ''.join(doc_links[:2]) + bora
+        pdf_state = row.get('official_pdf_availability')
+        pdf_label = {'available': 'PDF oficial en BORA',
+                     'missing': 'PDF oficial no disponible',
+                     'unknown': 'PDF oficial · disponibilidad sin confirmar'}.get(pdf_state, '')
+        pdf_link = (f'<a href="{_h(row["official_pdf_url"])}" target="_blank" rel="noopener">'
+                    f'{_h(pdf_label)} {icon("external")}</a>') if row.get('official_pdf_url') else ''
+        annex_warning = ('<p class="error-text">El aviso tiene anexos sin analizar. '
+                         'El resumen puede omitir contenido del anexo.</p>'
+                         if row.get('annex_status') == 'unread' else '')
+        shown_docs = ''.join(doc_links[:2]) + bora + pdf_link
         if len(doc_links)>2: shown_docs += '<details><summary>'+icon('right')+f'{len(doc_links)-2} documentos más</summary><div class="links">'+''.join(doc_links[2:])+'</div></details>'
         selectable = bool(summary and query.day and not query.end_day)
         disabled_reason = 'Hace falta un resumen completo' if not summary else 'Elegí un solo día para preparar el correo'
@@ -262,7 +271,7 @@ def render(app: WebApplication, query: Query, raw_query: str = '') -> bytes:
         full_summary = f'<div class="summary"><span class="attribution">{attribution}</span><strong>Resumen conceptual</strong><p>{_h(summary)}</p><strong>Relación con EPESF</strong><p>{_h(row.get("epesf_relationship"))}</p>{original}</div>' if summary else ''
         reference_detail = f'<p class="full-reference"><strong>Expediente</strong><br><span class="code">{_h(row["reference"])}</span></p>' if row['reference'] else ''
         reason_detail = signals(str(row['relevance_reason']), query.text)
-        detail = f'<details id="detail-{pid}"><summary>{icon("right")}Ver detalle</summary><div class="detail-body">{full_summary}<p><strong>Tipo de publicación</strong><br>{_h(row["category"])}</p><strong>{_h(row["agency"])}</strong>{reference_detail}<p>{_h(row["description"])}</p><strong>Motivo de clasificación</strong>{reason_detail}<div class="links">{"".join(doc_links)}{bora}</div></div></details>'
+        detail = f'<details id="detail-{pid}"><summary>{icon("right")}Ver detalle</summary><div class="detail-body">{full_summary}{annex_warning}<p><strong>Tipo de publicación</strong><br>{_h(row["category"])}</p><strong>{_h(row["agency"])}</strong>{reference_detail}<p>{_h(row["description"])}</p><strong>Motivo de clasificación</strong>{reason_detail}<div class="links">{"".join(doc_links)}{bora}{pdf_link}</div></div></details>'
         if summary:
             summary_action = f'<p class="preview">{_h(summary)}</p>'
         elif row['relevance'] in ('direct_epesf','potential_sector_impact'):

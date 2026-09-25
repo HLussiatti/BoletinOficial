@@ -8,13 +8,14 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
+from .bora import NoticeContent
 from .documents import DocumentSection
 from .mail import BulletinItem, EmailArtifact
 from .models import Publication
 from .priority import publication_sort_key
 from .summaries import ConceptualSummary, SummaryCandidate, source_digest
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 
 def utc_now() -> str:
@@ -132,6 +133,17 @@ class Database:
                 );
                 CREATE INDEX IF NOT EXISTS ix_document_sections_document
                     ON document_sections(document_id, section_type, ordinal);
+                CREATE TABLE IF NOT EXISTS notice_contents (
+                    publication_id INTEGER PRIMARY KEY REFERENCES publications(id) ON DELETE CASCADE,
+                    text TEXT NOT NULL,
+                    sha256 TEXT NOT NULL,
+                    notice_url TEXT NOT NULL,
+                    pdf_url TEXT NOT NULL,
+                    pdf_availability TEXT NOT NULL
+                        CHECK(pdf_availability IN ('available','missing','unknown')),
+                    annex_status TEXT NOT NULL CHECK(annex_status IN ('none','unread')),
+                    fetched_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS summaries (
                     id INTEGER PRIMARY KEY,
                     publication_id INTEGER NOT NULL REFERENCES publications(id),
@@ -228,7 +240,10 @@ class Database:
                 connection.execute("UPDATE schema_info SET version=5")
                 current_version = 5
             if current_version == 5:
-                connection.execute("UPDATE schema_info SET version=?", (SCHEMA_VERSION,))
+                connection.execute("UPDATE schema_info SET version=6")
+                current_version = 6
+            if current_version == 6:
+                connection.execute("UPDATE schema_info SET version=7")
 
     def start_run(self, mode: str, date_from: date, date_to: date) -> int:
         with self.connect() as connection:
@@ -408,6 +423,33 @@ class Database:
             """, (publication_id, kind)).fetchone()
             return str(row["extracted_text"]) if row else None
 
+    def notice_text(self, publication_id: int) -> str | None:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT text FROM notice_contents WHERE publication_id=?",
+                (publication_id,),
+            ).fetchone()
+            return str(row["text"]) if row else None
+
+    def save_notice(self, publication_id: int, notice: NoticeContent) -> None:
+        import hashlib
+
+        digest = hashlib.sha256(notice.text.encode("utf-8")).hexdigest()
+        with self.connect() as connection:
+            connection.execute("""
+                INSERT INTO notice_contents(
+                    publication_id,text,sha256,notice_url,pdf_url,
+                    pdf_availability,annex_status,fetched_at
+                ) VALUES(?,?,?,?,?,?,?,?)
+                ON CONFLICT(publication_id) DO UPDATE SET
+                    text=excluded.text,sha256=excluded.sha256,
+                    notice_url=excluded.notice_url,pdf_url=excluded.pdf_url,
+                    pdf_availability=excluded.pdf_availability,
+                    annex_status=excluded.annex_status,fetched_at=excluded.fetched_at
+            """, (publication_id, notice.text, digest, notice.notice_url,
+                  notice.pdf_url, notice.pdf_availability, notice.annex_status,
+                  utc_now()))
+
     def update_classification(self, publication_id: int, relevance: str,
                               reason: str, status: str, rules_version: str) -> None:
         with self.connect() as connection:
@@ -432,8 +474,9 @@ class Database:
     ) -> list[tuple[int, Publication, str]]:
         with self.connect() as connection:
             rows = connection.execute("""
-                SELECT p.*,COALESCE(GROUP_CONCAT(d.extracted_text, '\n\n'), '') full_text
+                SELECT p.*,COALESCE(n.text, GROUP_CONCAT(d.extracted_text, '\n\n'), '') full_text
                 FROM publications p
+                LEFT JOIN notice_contents n ON n.publication_id=p.id
                 LEFT JOIN documents d ON d.publication_id=p.id
                   AND d.extraction_status IN ('complete','insufficient')
                 GROUP BY p.id
@@ -473,7 +516,8 @@ class Database:
                 raise ValueError("Clasificación de resumen inválida")
             filters = [
                 "relevance IN ('direct_epesf','potential_sector_impact')",
-                "document_status='downloaded'",
+                "(document_status='downloaded' OR EXISTS ("
+                "SELECT 1 FROM notice_contents n WHERE n.publication_id=publications.id))",
             ]
             parameters: list[str] = []
             if publication_date:
@@ -491,18 +535,31 @@ class Database:
             """, parameters).fetchall()
             results: list[SummaryCandidate] = []
             for publication in publications:
-                documents = connection.execute("""
-                    SELECT kind,sha256,extracted_text FROM documents
-                    WHERE publication_id=?
-                      AND extraction_status IN ('complete','insufficient')
-                    ORDER BY kind,id
-                """, (publication["id"],)).fetchall()
-                if not documents:
-                    continue
-                digest, full_text = source_digest([
-                    (str(row["kind"]), str(row["sha256"]), str(row["extracted_text"]))
-                    for row in documents
-                ])
+                notice = connection.execute(
+                    "SELECT * FROM notice_contents WHERE publication_id=?",
+                    (publication["id"],),
+                ).fetchone()
+                if notice:
+                    digest = str(notice["sha256"])
+                    full_text = str(notice["text"])
+                    limitations = (
+                        "El aviso tiene anexos no analizados; el texto HTML no incluye su contenido."
+                        if notice["annex_status"] == "unread" else ""
+                    )
+                else:
+                    documents = connection.execute("""
+                        SELECT kind,sha256,extracted_text FROM documents
+                        WHERE publication_id=?
+                          AND extraction_status IN ('complete','insufficient')
+                        ORDER BY kind,id
+                    """, (publication["id"],)).fetchall()
+                    if not documents:
+                        continue
+                    digest, full_text = source_digest([
+                        (str(row["kind"]), str(row["sha256"]), str(row["extracted_text"]))
+                        for row in documents
+                    ])
+                    limitations = ""
                 exists = connection.execute("""
                     SELECT 1 FROM summaries
                     WHERE publication_id=? AND model=? AND prompt_version=?
@@ -518,7 +575,7 @@ class Database:
                     relevance=str(publication["relevance"]),
                     relevance_reason=str(publication["relevance_reason"]),
                     detail_url=str(publication["detail_url"]), full_text=full_text,
-                    source_sha256=digest,
+                    source_sha256=digest, source_limitations=limitations,
                 ))
                 if limit is not None and len(results) >= limit:
                     break

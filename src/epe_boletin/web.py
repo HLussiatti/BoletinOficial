@@ -154,7 +154,13 @@ class WebApplication:
                    ORDER BY s.id DESC LIMIT 1) epesf_relationship,
                   (SELECT model FROM summaries s
                    WHERE s.publication_id=p.id AND s.status='complete'
-                   ORDER BY s.id DESC LIMIT 1) summary_model
+                   ORDER BY s.id DESC LIMIT 1) summary_model,
+                  (SELECT pdf_url FROM notice_contents n
+                   WHERE n.publication_id=p.id) official_pdf_url,
+                  (SELECT pdf_availability FROM notice_contents n
+                   WHERE n.publication_id=p.id) official_pdf_availability,
+                  (SELECT annex_status FROM notice_contents n
+                   WHERE n.publication_id=p.id) annex_status
                 FROM publications p {where}
             """, parameters).fetchall()
             result = sorted((dict(row) for row in rows), key=publication_sort_key)
@@ -343,7 +349,9 @@ class WebApplication:
             counts = dict(connection.execute("""
                 SELECT summary_status,COUNT(*) FROM publications
                 WHERE relevance='potential_sector_impact'
-                  AND document_status='downloaded'
+                  AND (document_status='downloaded' OR EXISTS (
+                      SELECT 1 FROM notice_contents n
+                      WHERE n.publication_id=publications.id))
                 GROUP BY summary_status
             """).fetchall())
         return {

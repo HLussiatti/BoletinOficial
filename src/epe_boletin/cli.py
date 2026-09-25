@@ -65,6 +65,9 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--from", dest="date_from", type=parse_date)
     execute.add_argument("--to", dest="date_to", type=parse_date)
     execute.add_argument("--no-download", action="store_true")
+    execute.add_argument("--source-mode", choices=("local", "cloud"),
+                         default="local",
+                         help="cloud lee el texto HTML del aviso y no descarga PDF")
     execute.add_argument("--fixture-dir", type=Path,
                          help="Ejecutar con índices HTML locales, sin acceder a Internet")
     execute.add_argument("--timeout", type=float, default=30,
@@ -342,7 +345,8 @@ def main(argv: list[str] | None = None) -> int:
         client = BoraClient(timeout=args.timeout, max_attempts=args.max_attempts,
                             rules=rules)
         result = run(database, client, args.data_dir, args.mode,
-                     date_from, date_to, not args.no_download, args.fixture_dir)
+                     date_from, date_to, not args.no_download, args.fixture_dir,
+                     source_mode=args.source_mode)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
