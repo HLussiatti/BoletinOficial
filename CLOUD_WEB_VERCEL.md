@@ -120,8 +120,22 @@ para el entorno **Preview**. Después, desde esa misma carpeta:
 vercel.cmd deploy
 ```
 
-Sin `--prod`, Vercel crea una Preview. Verificar que el acceso sin
-sesión sólo muestre el formulario, que los tres usuarios puedan entrar, que los
+En un proyecto recién creado, Vercel CLI 60.0.1 asignó el primer despliegue a
+Production aun sin `--prod`; ese despliegue inicial se retiró porque no tenía
+las variables Preview. El segundo despliegue quedó en **Preview**, estado
+`Ready`, en
+`https://epe-boletin-preview-gml7caykm-ame-bbfb.vercel.app`. Los siguientes
+`vercel deploy` sin `--prod` crean nuevas Previews.
+
+Vercel Authentication protege esa URL de Preview. Para que los otros usuarios
+puedan abrirla sin pertenecer al equipo de Vercel, ir a **Deployments**, abrir
+la Preview y usar **Share → Anyone with the link**. Compartir ese enlace sólo
+con los usuarios autorizados; después cada uno debe ingresar su usuario y
+contraseña de la aplicación. Véase la
+[guía de enlaces compartibles](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/sharable-links).
+
+Verificar que el acceso sin sesión sólo muestre el formulario, que los tres
+usuarios puedan entrar, que los
 filtros y el CSV coincidan con Turso y que el `.eml` se abra como borrador sin
 adjuntos. Comprobar también que las URLs oficiales lleven al BORA.
 
