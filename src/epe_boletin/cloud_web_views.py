@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -32,19 +33,27 @@ CLOUD_CSS = CSS + """
 """
 
 # The shared portion covers selection, the approved range picker, density,
-# navigation and keyboard shortcuts. Local-only email and ingestion handlers
-# are deliberately excluded from the read-only cloud view.
+# navigation and keyboard shortcuts. Cloud work is submitted with a CSRF token.
 CLOUD_SCRIPT = (SCRIPT.split(" function emailActions", 1)[0]
                 + " document.querySelectorAll('.title a')"
                 + SCRIPT.split(" document.querySelectorAll('.title a')", 1)[1]
                         .split(" const actionNotice", 1)[0]
                 + "})();")
+CLOUD_SCRIPT = CLOUD_SCRIPT[:-5] + """
+ const work=$('#cloud-work');
+ if(work){
+   const button=work.querySelector('button');
+   button.disabled=true;button.textContent='Procesando…';
+   fetch(work.action,{method:'POST',body:new URLSearchParams(new FormData(work)),credentials:'same-origin'})
+     .then(response=>{if(!response.ok)throw new Error('La conexión falló');window.location.reload();})
+     .catch(()=>{button.disabled=false;button.textContent='Continuar trabajo';});
+ }
+})();"""
 
 
 def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
     # Import here because cloud_web loads this view only after the request is authenticated.
     from .cloud_web import PAGE_SIZE, RELEVANCE, _h, _official_pdf_url, _official_url
-    from .cloud_dispatch import configured
 
     today = datetime.now(timezone(timedelta(hours=-3))).date()
     overview = app._overview(filters)
@@ -52,7 +61,7 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
     failed = int(overview["failed"])
     last = overview["last"]
     latest = app._latest_date()
-    actions_enabled = configured()
+    summary_enabled = bool(os.environ.get("GEMINI_API_KEY", "").strip())
     job_notice = ""
     refresh = ""
     if job_id:
@@ -67,7 +76,12 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
             job_notice = (f'<div class="cloud-job{" failed" if state == "failed" else ""}" '
                           f'role="status"><strong>{_h(label)}</strong>{error}</div>')
             if state in ("pending", "running"):
-                refresh = '<meta http-equiv="refresh" content="15">'
+                refresh = '<meta http-equiv="refresh" content="10">' if state == "running" else ""
+                if state == "pending":
+                    job_notice += (f'<form id="cloud-work" action="/?action=step" method="post">'
+                                   f'<input type="hidden" name="csrf" value="{_h(csrf)}">'
+                                   f'<input type="hidden" name="job" value="{_h(job_id)}">'
+                                   '<button type="submit">Continuar trabajo</button></form>')
     calendar_mode = (filters.view == "history" and not filters.day and not filters.text
                      and not filters.category and filters.relevance == "active")
     total, rows = (0, []) if calendar_mode or filters.view == "failures" else app._listing(filters)
@@ -196,7 +210,7 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
         if summary:
             preview = f'<p class="preview">{_h(summary)}</p>'
         elif row["relevance"] in ("direct_epesf", "potential_sector_impact"):
-            disabled = "" if actions_enabled else ' disabled title="Configuración pendiente"'
+            disabled = "" if summary_enabled else ' disabled title="Falta configurar Gemini"'
             label = "Reintentar resumen" if row["summary_status"] == "error" else "Generar resumen"
             preview = (f'<button class="summary-action" type="submit" form="cloud-summary" '
                        f'name="id" value="{publication_id}"{disabled}>{label}</button>')
@@ -227,7 +241,7 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
                 title, detail = "No hay publicaciones para esta vista", "Elegí otro día o cambiá los filtros."
             consult = ""
             if filters.day and not filters.end_day and not filters.text and not filters.category and (not coverage or coverage["status"] == "failed"):
-                disabled = "" if actions_enabled and date.fromisoformat(filters.day) <= today else ' disabled title="Consulta no disponible"'
+                disabled = "" if date.fromisoformat(filters.day) <= today else ' disabled title="Consulta no disponible"'
                 label = "Reintentar consulta" if coverage else "Consultar ahora"
                 consult = (f'<button type="submit" form="cloud-consult" name="date" '
                            f'value="{_h(filters.day)}"{disabled}>{label}</button>')
@@ -243,6 +257,7 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
             result += f'<nav class="cloud-page-nav" aria-label="Páginas">{previous_page}<span>Página {filters.page}</span>{next_page}</nav>'
 
     if filters.view == "failures":
+        summary_disabled = "" if summary_enabled else ' disabled title="Falta configurar Gemini"'
         with app._database().connect() as connection:
             coverage_issues = connection.execute(
                 "SELECT publication_date,status,error FROM coverage WHERE source='BORA' "
@@ -258,7 +273,7 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
             f'<li class="cloud-issue"><strong>Cobertura · {_h(item["publication_date"])}</strong>'
             f'<p>{_h(item["error"] or "La consulta no se completó")}</p>'
             f'<button type="submit" form="cloud-consult" name="date" value="{_h(item["publication_date"])}"'
-            f'{"" if actions_enabled else " disabled"}>Reintentar consulta</button></li>'
+            '>Reintentar consulta</button></li>'
             for item in coverage_issues)
         for item in publication_issues:
             states = []
@@ -272,7 +287,7 @@ def render(app, filters, csrf: str, user: str, job_id: str = "") -> bytes:
             link = (f' <a href="{_h(official)}" target="_blank" rel="noopener noreferrer">Abrir aviso</a>'
                     if official else "")
             retry = (f'<button type="submit" form="cloud-summary" name="id" value="{item["id"]}"'
-                     f'{"" if actions_enabled else " disabled"}>Reintentar resumen</button>'
+                     f'{summary_disabled}>Reintentar resumen</button>'
                      if item["summary_status"] == "error" and item["relevance"] in
                      ("direct_epesf", "potential_sector_impact") else "")
             issue_items += (f'<li class="cloud-issue"><strong>Publicación · {_h(item["title"])}</strong>'

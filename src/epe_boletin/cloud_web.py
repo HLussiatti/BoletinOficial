@@ -317,9 +317,8 @@ class CloudWeb:
         return render(self, filters, csrf, user, job_id)
 
     def _queue(self, action: str, body: dict[str, list[str]], user: str) -> str:
-        from .cloud_dispatch import configured, dispatch
-        if not configured():
-            raise RequestError("La ejecución todavía no está configurada")
+        if action == "summary" and not os.environ.get("GEMINI_API_KEY", "").strip():
+            raise RequestError("Falta configurar Gemini en la Preview")
         if action == "consult":
             target = body.get("date", [""])[0]
             try:
@@ -344,12 +343,7 @@ class CloudWeb:
                 raise RequestError("Esta publicación no tiene un resumen pendiente")
         db = self._database()
         db.migrate()
-        job_id, created = db.enqueue_job(action, target, user)
-        if created:
-            try:
-                dispatch(job_id)
-            except Exception:
-                db.finish_job(job_id, "failed", "No se pudo iniciar el ejecutor. Reintentá.")
+        job_id, _ = db.enqueue_job(action, target, user)
         return job_id
 
     def _login_page(self, csrf: str, error: str = "") -> bytes:
@@ -415,6 +409,27 @@ class CloudWeb:
                     with self._database().connect() as connection:
                         row = connection.execute("SELECT publication_date FROM publications WHERE id=?",
                                                  (int(body["id"][0]),)).fetchone()
+                    day = str(row["publication_date"]) if row else ""
+                location = "/?" + urlencode({"date": day, "job": job_id})
+                return self._respond(start_response, 303, b"", [("Location", location)])
+            if action == "step" and method == "POST":
+                job_id = body.get("job", [""])[0]
+                if not re.fullmatch(r"[0-9a-f]{32}", job_id):
+                    raise RequestError("Solicitud inválida")
+                from .cloud_worker import execute
+                try:
+                    execute(self._database(), job_id)
+                except Exception as exc:
+                    logging.error("Cloud action failed (%s)", type(exc).__name__)
+                job = self._database().job(job_id)
+                if job is None:
+                    raise RequestError("Solicitud inexistente")
+                if job["kind"] == "consult":
+                    day = str(job["target"])
+                else:
+                    with self._database().connect() as connection:
+                        row = connection.execute("SELECT publication_date FROM publications WHERE id=?",
+                                                 (int(job["target"]),)).fetchone()
                     day = str(row["publication_date"]) if row else ""
                 location = "/?" + urlencode({"date": day, "job": job_id})
                 return self._respond(start_response, 303, b"", [("Location", location)])

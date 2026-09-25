@@ -13,7 +13,7 @@ from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 from unittest.mock import patch
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 from bs4 import BeautifulSoup
 
 from epe_boletin.cloud_auth import CloudAuth, main as auth_main, password_hash
@@ -241,13 +241,11 @@ class CloudWebTest(unittest.TestCase):
         self.assertIn(b"range-picker", script["body"])
         self.assertNotIn(b"/prepare-email", script["body"])
 
-    def test_manual_consult_dispatches_once_and_shows_status(self):
+    def test_manual_consult_starts_in_vercel_and_shows_status(self):
         ticket = self.ticket()
         cookie = "epe_session=" + ticket
         csrf = self.auth.csrf_token(ticket)
-        settings = {"EPE_GITHUB_ACTIONS_TOKEN": "test-token",
-                    "EPE_GITHUB_REPOSITORY": "owner/repo"}
-        with patch.dict(os.environ, settings), patch("epe_boletin.cloud_dispatch.dispatch") as dispatch:
+        with patch.dict(os.environ, {}, clear=False):
             page = self.request("date=2026-09-23", cookie=cookie)
             self.assertIn(b"Consultar ahora", page["body"])
             document = BeautifulSoup(page["body"], "html.parser")
@@ -260,26 +258,36 @@ class CloudWebTest(unittest.TestCase):
             request = self.request("action=consult", method="POST", cookie=cookie,
                                    data={"date": "2026-09-23", "csrf": csrf})
             self.assertEqual(303, int(request["status"][:3]))
-            dispatch.assert_called_once()
             self.assertIn("job=", request["headers"]["Location"])
             repeated = self.request("action=consult", method="POST", cookie=cookie,
                                     data={"date": "2026-09-23", "csrf": csrf})
             self.assertEqual(request["headers"]["Location"], repeated["headers"]["Location"])
-            dispatch.assert_called_once()
             status = self.request(request["headers"]["Location"].split("?", 1)[1],
                                   cookie=cookie)
             self.assertIn(b"Solicitud recibida", status["body"])
-            self.assertIn(b'http-equiv="refresh"', status["body"])
+            self.assertIn(b'id="cloud-work"', status["body"])
+            job_id = parse_qs(urlparse(request["headers"]["Location"]).query)["job"][0]
+            denied_step = self.request("action=step", method="POST", cookie=cookie,
+                                       data={"job": job_id, "csrf": "invalid"})
+            self.assertEqual(403, int(denied_step["status"][:3]))
+            def complete(db, identifier):
+                db.claim_job(identifier)
+                db.finish_job(identifier, "complete")
+            with patch("epe_boletin.cloud_worker.execute", side_effect=complete) as worker:
+                step = self.request("action=step", method="POST", cookie=cookie,
+                                    data={"job": job_id, "csrf": csrf})
+                self.assertEqual(303, int(step["status"][:3]))
+                worker.assert_called_once()
+            done = self.request(step["headers"]["Location"].split("?", 1)[1], cookie=cookie)
+            self.assertIn(b"Trabajo terminado", done["body"])
 
-    def test_summary_dispatch_and_validation(self):
+    def test_summary_request_and_validation(self):
         ticket = self.ticket()
         cookie = "epe_session=" + ticket
         csrf = self.auth.csrf_token(ticket)
         with self.db.connect() as connection:
             connection.execute("DELETE FROM summaries WHERE publication_id=?", (self.publication_id,))
-        with patch.dict(os.environ, {"EPE_GITHUB_ACTIONS_TOKEN": "test-token",
-                                  "EPE_GITHUB_REPOSITORY": "owner/repo"}), \
-             patch("epe_boletin.cloud_dispatch.dispatch") as dispatch:
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}):
             page = self.request(cookie=cookie)
             self.assertIn(b"Generar resumen", page["body"])
             document = BeautifulSoup(page["body"], "html.parser")
@@ -289,22 +297,28 @@ class CloudWebTest(unittest.TestCase):
             sent = self.request("action=summary", method="POST", cookie=cookie,
                                 data={"id": str(self.publication_id), "csrf": csrf})
             self.assertEqual(303, int(sent["status"][:3]))
-            dispatch.assert_called_once()
             bad = self.request("action=summary", method="POST", cookie=cookie,
                                data={"id": "999999", "csrf": csrf})
             self.assertEqual(400, int(bad["status"][:3]))
 
-    def test_dispatch_failure_is_visible_and_retryable(self):
+    def test_worker_failure_is_visible_and_retryable(self):
         ticket = self.ticket()
         cookie = "epe_session=" + ticket
-        with patch.dict(os.environ, {"EPE_GITHUB_ACTIONS_TOKEN": "test-token",
-                                  "EPE_GITHUB_REPOSITORY": "owner/repo"}), \
-             patch("epe_boletin.cloud_dispatch.dispatch", side_effect=RuntimeError("unavailable")):
+        with patch.dict(os.environ, {}, clear=False):
             sent = self.request("action=consult", method="POST", cookie=cookie,
                                 data={"date": "2026-09-23",
                                       "csrf": self.auth.csrf_token(ticket)})
             self.assertEqual(303, int(sent["status"][:3]))
-            status = self.request(sent["headers"]["Location"].split("?", 1)[1], cookie=cookie)
+            job_id = parse_qs(urlparse(sent["headers"]["Location"]).query)["job"][0]
+            def fail(db, identifier):
+                db.claim_job(identifier)
+                db.finish_job(identifier, "failed", "No se pudo completar el trabajo")
+                raise RuntimeError("unavailable")
+            with patch("epe_boletin.cloud_worker.execute", side_effect=fail):
+                step = self.request("action=step", method="POST", cookie=cookie,
+                                    data={"job": job_id, "csrf": self.auth.csrf_token(ticket)})
+                self.assertEqual(303, int(step["status"][:3]))
+            status = self.request(step["headers"]["Location"].split("?", 1)[1], cookie=cookie)
             self.assertIn(b"No se pudo completar", status["body"])
             self.assertNotIn(b"unavailable", status["body"])
             again = self.request("action=consult", method="POST", cookie=cookie,

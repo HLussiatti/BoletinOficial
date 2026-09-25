@@ -1,10 +1,10 @@
-"""Run one authenticated cloud request on a GitHub-hosted runner."""
+"""Run one authenticated cloud request within the Vercel function limit."""
 
 from __future__ import annotations
 
-import json
 import os
 import re
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -26,12 +26,13 @@ def execute(db: TursoDatabase, job_id: str, *, client: BoraClient | None = None,
     if job is None:
         raise ValueError("La solicitud no está pendiente")
     rules_path = Path("config/relevance_rules.json")
-    client = client or BoraClient(rules=load_rules(rules_path) if rules_path.is_file()
-                                else DEFAULT_RULES)
+    client = client or BoraClient(timeout=15, max_attempts=2,
+                                  rules=load_rules(rules_path) if rules_path.is_file()
+                                  else DEFAULT_RULES)
     try:
         if job["kind"] == "consult":
             day = date.fromisoformat(str(job["target"]))
-            outcome = run(db, client, Path(os.environ.get("RUNNER_TEMP", ".")),
+            outcome = run(db, client, Path(tempfile.gettempdir()) / f"epe-{job_id}",
                           "daily", day, day, download=False, source_mode="cloud")
             if outcome["status"] != "complete":
                 raise RuntimeError("La consulta no se completó. Revisá Fallas.")
@@ -90,14 +91,3 @@ def execute(db: TursoDatabase, job_id: str, *, client: BoraClient | None = None,
     except Exception:
         db.finish_job(job_id, "failed", "La solicitud falló. Revisá el registro de ejecución y reintentá.")
         raise
-
-
-def main() -> int:
-    job_id = os.environ.get("EPE_CLOUD_JOB_ID", "")
-    result = execute(TursoDatabase.from_env(), job_id)
-    print(json.dumps({"status": "ok", **result}, ensure_ascii=False))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

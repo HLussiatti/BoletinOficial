@@ -220,7 +220,7 @@ class TursoDatabase(Database):
             raise ValueError("Solicitud inválida")
         job_id = uuid.uuid4().hex
         now = datetime.now(timezone.utc).isoformat()
-        stale = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+        stale = (datetime.now(timezone.utc) - timedelta(minutes=7)).isoformat()
         with self.connect() as connection:
             connection.execute("""
                 UPDATE cloud_jobs SET status='failed',finished_at=?,
@@ -247,7 +247,7 @@ class TursoDatabase(Database):
             row = connection.execute("SELECT * FROM cloud_jobs WHERE id=?", (job_id,)).fetchone()
         if (row and row["status"] in ("pending", "running")
                 and datetime.fromisoformat(row["started_at"] or row["created_at"])
-                    < datetime.now(timezone.utc) - timedelta(minutes=30)):
+                    < datetime.now(timezone.utc) - timedelta(minutes=7)):
             self.finish_job(job_id, "failed",
                             "La ejecución no comenzó o excedió el tiempo esperado. Reintentá.")
             with self.connect() as connection:
