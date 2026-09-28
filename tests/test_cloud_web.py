@@ -221,6 +221,7 @@ class CloudWebTest(unittest.TestCase):
         self.assertIn(b'class="metrics"', day["body"])
         self.assertIn(b'class="column-head"', day["body"])
         self.assertIn("script-src 'self'", day["headers"]["Content-Security-Policy"])
+        self.assertIn("connect-src 'self'", day["headers"]["Content-Security-Policy"])
         period = self.request("date=2026-09-23&to=2026-09-24", cookie=cookie)
         self.assertIn(b"Disposici", period["body"])
         self.assertIn(b"Resoluci", period["body"])
